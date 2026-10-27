@@ -1,0 +1,54 @@
+{
+  "version": "UI3",
+  "product_rules": "V2",
+  "color": {
+    "ink": "#343F35",
+    "paper": "#FFFAF0",
+    "sage": "#4C6A58",
+    "gold": "#A67D33",
+    "rose": "#BC8171"
+  },
+  "fonts": {
+    "heading": "FairySerif Noto Serif CJK TC subset",
+    "body": "FairySans Noto Sans CJK TC subset",
+    "license": "SIL Open Font License in Prototype/dist/assets/FONT_LICENSE.txt"
+  },
+  "viewport": {
+    "mobile": [
+      390,
+      844
+    ],
+    "desktop": [
+      1440,
+      960
+    ],
+    "minimum_width": 320
+  },
+  "layers": [
+    "scene",
+    "fairy",
+    "magic_ring",
+    "particles",
+    "interface",
+    "text",
+    "status"
+  ],
+  "art": [
+    "sanctuary",
+    "fairy",
+    "vignettes",
+    "market"
+  ],
+  "motion": {
+    "idle": "6 second small float",
+    "summon": "1.8 second response",
+    "offline_ring": "4 second concept effect",
+    "reduced_motion": true
+  },
+  "prototype_default": {
+    "xp": 160,
+    "display_form": "pre_evolved_fairy_fixture",
+    "campaign_points": 16,
+    "new_user_rule": "0 XP particle orb"
+  }
+}
