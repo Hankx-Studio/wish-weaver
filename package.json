@@ -12,5 +12,10 @@
     "start": "node --env-file-if-exists=.env server/index.js",
     "test": "node --test tests/",
     "probe": "node --env-file=.env scripts/probe.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "hono": "^4.13.14",
+    "zod": "^4.6.7"
   }
 }
