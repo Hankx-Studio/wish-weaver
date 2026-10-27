@@ -1,0 +1,150 @@
+{
+ "base": "https://api.meta.ai/v1",
+ "models": {
+  "TEXT": "muse-spark-1.3",
+  "IMAGE": "muse-image-1.0",
+  "SEG": "sam-3.1",
+  "ASR": "muse-voice-transcribe-1.0"
+ },
+ "results": [
+  {
+   "name": "spark-image-input",
+   "model": "muse-spark-1.3",
+   "endpoint": "/v1/responses",
+   "http_status": 200,
+   "latency_ms": 4165,
+   "usage": {
+    "input_tokens": 1239,
+    "input_tokens_details": {
+     "cached_tokens": 1123
+    },
+    "output_tokens": 349,
+    "output_tokens_details": {
+     "reasoning_tokens": 318
+    },
+    "total_tokens": 1588
+   },
+   "response_shape_truncated": "{\"top_logprobs\":0,\"temperature\":1,\"top_p\":1,\"service_tier\":\"auto\",\"model\":\"muse-spark-1.3\",\"reasoning\":{\"effort\":\"low\"},\"background\":false,\"tools\":[],\"tool_choice\":\"auto\",\"truncation\":\"disabled\",\"id\":\"resp_6ae0e0d2381666165dc745df\",\"object\":\"response\",\"status\":\"completed\",\"created_at\":1793122514,\"completed_at\":1793122514,\"error\":null,\"incomplete_details\":null,\"output\":[{\"type\":\"reasoning\",\"id\":\"rs_6ae0e0d2381666165dc745df:rs_7bcd7499-e21e-4db8-9090-cfc84950a3b0\",\"summary\":[],\"status\":\"completed\"},{\"type\":\"message\",\"id\":\"msg_c977b2ad-c4ca-4dea-a868-024dfc66623a\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"粉髮綠眼尖耳小仙女，著白花瓣裙，背展透明蝶翼。\",\"annotations\":[],\"logprobs\":[]}],\"status\":\"completed\"}],\"instructions\":null,\"usage\":{\"input_tokens\":1239,\"input_tokens_details\":{\"cached_tokens\":1123},\"output_tokens\":349,\"output_tokens_details\":{\"reasoning_tokens\":318},\"total_tokens\":1588},\"parallel_tool_calls\":true,\"store\":true}",
+   "notes": ""
+  },
+  {
+   "name": "image-generations",
+   "model": "muse-image-1.0",
+   "endpoint": "/v1/images/generations",
+   "http_status": 200,
+   "latency_ms": 12320,
+   "usage": {
+    "input_tokens": 10275,
+    "output_tokens": 1178,
+    "total_tokens": 11453
+   },
+   "response_shape_truncated": "{\"created\":1793122526,\"data\":\"[image bytes saved]\",\"output_format\":\"webp\",\"background\":\"opaque\",\"usage\":{\"input_tokens\":10275,\"output_tokens\":1178,\"total_tokens\":11453}}",
+   "notes": "saved data/probe/gen1.webp"
+  },
+  {
+   "name": "image-edits",
+   "model": "muse-image-1.0",
+   "endpoint": "/v1/images/edits",
+   "http_status": 200,
+   "latency_ms": 13306,
+   "usage": {
+    "input_tokens": 11881,
+    "output_tokens": 633,
+    "total_tokens": 12514
+   },
+   "response_shape_truncated": "{\"created\":1793122540,\"data\":\"[image bytes saved]\",\"output_format\":\"webp\",\"background\":\"opaque\",\"usage\":{\"input_tokens\":11881,\"output_tokens\":633,\"total_tokens\":12514}}",
+   "notes": "saved data/probe/edit1.png; compare with gen1 for identity continuity"
+  },
+  {
+   "name": "voice-transcribe",
+   "model": "muse-voice-transcribe-1.0",
+   "endpoint": "/v1/asr/transcribe",
+   "http_status": 200,
+   "latency_ms": 2402,
+   "usage": null,
+   "response_shape_truncated": "{\"sessionId\":\"m0-1793122487556\",\"transcript\":\"\",\"audioDurationMs\":2000,\"turns\":[]}",
+   "notes": "wav 96078 bytes, mono 16-bit 24kHz; tone input only (macOS say blocked in sandbox: 0-byte output) — transcript quality NOT validated, re-probe with real speech in M5"
+  },
+  {
+   "name": "spark-structured-minimal",
+   "model": "muse-spark-1.3",
+   "endpoint": "/v1/responses",
+   "http_status": 200,
+   "latency_ms": 6377,
+   "usage": {
+    "input_tokens": 33,
+    "input_tokens_details": {
+     "cached_tokens": 0
+    },
+    "output_tokens": 323,
+    "output_tokens_details": {
+     "reasoning_tokens": 249
+    },
+    "total_tokens": 356
+   },
+   "response_shape_truncated": "{\"top_logprobs\":0,\"temperature\":1,\"top_p\":1,\"service_tier\":\"auto\",\"model\":\"muse-spark-1.3\",\"reasoning\":{\"effort\":\"minimal\"},\"background\":false,\"text\":{\"format\":{\"type\":\"json_schema\",\"name\":\"wish_reading\",\"schema\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"effect\":{\"type\":\"string\"},\"element\":{\"type\":\"string\"},\"intensity\":{\"type\":\"integer\"},\"mood\":{\"type\":\"string\"},\"safety\":{\"type\":\"string\"},\"spirit_line\":{\"type\":\"string\"},\"traits\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}},\"required\":[\"element\",\"mood\",\"intensity\",\"traits\",\"spirit_line\",\"effect\",\"safety\"]},\"strict\":true}},\"tools\":[],\"tool_choice\":\"auto\",\"truncation\":\"disabled\",\"id\":\"resp_6ae0df9c57197df738104a2c\",\"object\":\"response\",\"status\":\"completed\",\"created_at\":1793122204,\"completed_at\":1793122204,\"error\":null,\"incomplete_details\":null,\"output\":[{\"type\":\"reasoning\",\"id\":\"rs_6ae0df9c57197df738104a2c:rs_0107bb8e-5668-4c34-959f-2a0aef537d3d\",\"summary\":[],\"status\":\"completed\"},{\"type\":\"message\",\"id\":\"msg_44dd3a26-d1b4-4850-8be1-f49f5e876b72\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"{\\\"effect\\\":\\\"傳遞感恩與家的溫暖\\\",\\\"element\\\":\\\"番茄炒蛋\\\",\\\"intensity\\\":8,\\\"mood\\\":\\\"溫馨感恩\\\",\\\"safety\\\":\\\"safe\\\",\\\"spirit_line\\…[truncated 338 chars]",
+   "notes": ""
+  },
+  {
+   "name": "spark-structured-low",
+   "model": "muse-spark-1.3",
+   "endpoint": "/v1/responses",
+   "http_status": 200,
+   "latency_ms": 4697,
+   "usage": {
+    "input_tokens": 33,
+    "input_tokens_details": {
+     "cached_tokens": 0
+    },
+    "output_tokens": 685,
+    "output_tokens_details": {
+     "reasoning_tokens": 615
+    },
+    "total_tokens": 718
+   },
+   "response_shape_truncated": "{\"top_logprobs\":0,\"temperature\":1,\"top_p\":1,\"service_tier\":\"auto\",\"model\":\"muse-spark-1.3\",\"reasoning\":{\"effort\":\"low\"},\"background\":false,\"text\":{\"format\":{\"type\":\"json_schema\",\"name\":\"wish_reading\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"effect\":{\"type\":\"string\"},\"element\":{\"type\":\"string\"},\"intensity\":{\"type\":\"integer\"},\"mood\":{\"type\":\"string\"},\"safety\":{\"type\":\"string\"},\"spirit_line\":{\"type\":\"string\"},\"traits\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}},\"required\":[\"element\",\"mood\",\"intensity\",\"traits\",\"spirit_line\",\"effect\",\"safety\"],\"type\":\"object\"},\"strict\":true}},\"tools\":[],\"tool_choice\":\"auto\",\"truncation\":\"disabled\",\"id\":\"resp_6ae0dfa1e685c28cf0344dbb\",\"object\":\"response\",\"status\":\"completed\",\"created_at\":1793122209,\"completed_at\":1793122209,\"error\":null,\"incomplete_details\":null,\"output\":[{\"type\":\"reasoning\",\"id\":\"rs_6ae0dfa1e685c28cf0344dbb:rs_0f5cafd2-1d85-483b-ae83-b36b2cd9070d\",\"summary\":[],\"status\":\"completed\"},{\"type\":\"message\",\"id\":\"msg_f2c2a71c-dfab-4ce7-a984-f829c8d949ef\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"{\\\"effect\\\":\\\"convey gratitude and cherish family warmth\\\",\\\"element\\\":\\\"fire\\\",\\\"intensity\\\":8,\\\"mood\\\":\\\"grateful\\\",\\…[truncated 380 chars]",
+   "notes": ""
+  },
+  {
+   "name": "spark-structured-medium",
+   "model": "muse-spark-1.3",
+   "endpoint": "/v1/responses",
+   "http_status": 200,
+   "latency_ms": 9782,
+   "usage": {
+    "input_tokens": 33,
+    "input_tokens_details": {
+     "cached_tokens": 0
+    },
+    "output_tokens": 1312,
+    "output_tokens_details": {
+     "reasoning_tokens": 1239
+    },
+    "total_tokens": 1345
+   },
+   "response_shape_truncated": "{\"top_logprobs\":0,\"temperature\":1,\"top_p\":1,\"service_tier\":\"auto\",\"model\":\"muse-spark-1.3\",\"reasoning\":{\"effort\":\"medium\"},\"background\":false,\"text\":{\"format\":{\"type\":\"json_schema\",\"name\":\"wish_reading\",\"schema\":{\"additionalProperties\":false,\"required\":[\"element\",\"mood\",\"intensity\",\"traits\",\"spirit_line\",\"effect\",\"safety\"],\"type\":\"object\",\"properties\":{\"effect\":{\"type\":\"string\"},\"element\":{\"type\":\"string\"},\"intensity\":{\"type\":\"integer\"},\"mood\":{\"type\":\"string\"},\"safety\":{\"type\":\"string\"},\"spirit_line\":{\"type\":\"string\"},\"traits\":{\"items\":{\"type\":\"string\"},\"type\":\"array\"}}},\"strict\":true}},\"tools\":[],\"tool_choice\":\"auto\",\"truncation\":\"disabled\",\"id\":\"resp_6ae0dfabea818adccf1841be\",\"object\":\"response\",\"status\":\"completed\",\"created_at\":1793122219,\"completed_at\":1793122219,\"error\":null,\"incomplete_details\":null,\"output\":[{\"type\":\"reasoning\",\"id\":\"rs_6ae0dfabea818adccf1841be:rs_7bcfefce-0963-4532-b09a-148c040ca280\",\"summary\":[],\"status\":\"completed\"},{\"type\":\"message\",\"id\":\"msg_ad368cc9-925c-4363-a22e-9d252e2f752d\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"{\\\"effect\\\":\\\"warms hearts and strengthens family connection\\\",\\\"element\\\":\\\"fire\\\",\\\"intensity\\\":7,\\\"mood\\\":\\\"grate…[truncated 400 chars]",
+   "notes": ""
+  },
+  {
+   "name": "sam-segment-bread",
+   "model": "sam-3.1",
+   "endpoint": "/v1/responses",
+   "http_status": 200,
+   "latency_ms": 3132,
+   "usage": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "cached_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "reasoning_tokens": 0
+    },
+    "total_tokens": 0,
+    "images_processed": 1
+   },
+   "response_shape_truncated": "{\"top_logprobs\":0,\"temperature\":1,\"top_p\":1,\"service_tier\":\"auto\",\"model\":\"sam-3.1\",\"background\":false,\"tools\":[],\"tool_choice\":\"auto\",\"truncation\":\"disabled\",\"id\":\"resp_6ae0dfbe8f81868b8b1e466b\",\"object\":\"response\",\"status\":\"completed\",\"created_at\":1793122238,\"completed_at\":1793122238,\"error\":null,\"incomplete_details\":null,\"output\":[{\"type\":\"message\",\"id\":\"msg_91e8fbc4-0a85-4815-a016-af06ee52af5e\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"<0f>0<|box;x1=248;y1=270;x2=449;y2=410;w=2048;h=683|><|mask;x=0;y=0;data=141,202,~!!!L.#K{$h$u+4zVwC4d:JF9Api4mwxA{01rmaDGEmWc_KaK^CY^32/bvDb36_3Usv8eQxuhei@GyW0ScQ.[$x$opMfbcs?R7&B*#5NJ_r+W9t[etmnE@QcdK_up=3Gr7APRoSvU9mns)jB%%utz`mQa6?XZR&'84_0k^4CA{S=woNwtb'*$#5DB'WK'pcNh0%Qb@)@(pgErCcx_w&s4`C['&cMehM$0'm*t.{#c/p1sDMK@_b8_TB9g(^pTUaFRl#&/e)mnm]7Gj($`Q0T7!HMhW6.WwCBNAx.538R+5%(E){@T6hmNxq5L-7Jb?GDFvDlDFR%bJzs'dz%!yFi]HY:5i@M!AjQPyD-PeX:M$G'NrTzRGM5]qHCc$#/VV3Nf#sSW/GtbKq[G5(bb#cQvIlF9aNE6KEVZ2Nj+&NUa+uN6YiZ4$gs@j-(T3iJ7Li/86JDfoeD@p]'v#-sE=OV%[]&w67bi5{=.ZBw@O77o#z-gpw{G=42L57(cVu!?SLgDkb^kop7_55?1_/{%?Vev*f#-+xwEsx=`v@HwnI@{r3tS@I9e[YV15uW&tR..*^(t`]t$6))P-sK/oVEi*xEkNPz?pM12=i(M'2C7=&PWmrmc0vuJ(l#=kuMjR6qN%2oq4vjTY[^%Ek_3#s?h…[truncated 7385 chars] | mask format TBD: RLE/PNG/polygon?",
+   "notes": ""
+  }
+ ]
+}
