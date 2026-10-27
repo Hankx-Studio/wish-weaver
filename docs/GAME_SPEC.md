@@ -1,6 +1,6 @@
 # GAME_SPEC v1 — 精靈之間：心意召喚（Fairy Companion: Wish Weaver）
 
-狀態：草案 v1（M0 完成探測後凍結為 v1.0，之後改動需在 docs/HANDOFF.md 記錄）
+狀態：v1.0 凍結（2026-10-28，M0 探測完成；之後改動需在 docs/HANDOFF.md 記錄）
 截止：2026-11-04 21:00 ET＝台北 11-05 10:00。目標在台北 11-04 晚上提交。
 
 ## 1. 一句話
@@ -89,7 +89,7 @@ Meta Model API  https://api.meta.ai/v1
 | muse-spark-1.3-contributor（只用於 Muse Code 開發） | $0.10 / $0.20 / $0.002 |
 | muse-image-1.0 | $0.01 / 張 |
 | sam-3.1 | $2.50 / 1000 張 |
-| muse-voice-transcribe-1.0 | M0 查核 |
+| muse-voice-transcribe-1.0 | $0.18 / 音訊小時（整秒計，M0 查核價目頁） |
 
 目標：每位玩家完成一輪 ≤ US$0.01；完整體驗（10 心意＋3 演化＋2 掃描）≤ US$0.10。實際數字以 data/usage.jsonl 彙總為準。
 
