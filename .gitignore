@@ -8,3 +8,4 @@ data/
 .agents/
 test-results/
 playwright-report/
+.worktrees/

@@ -13,9 +13,14 @@
 M3 與 M4 都只依賴 M2，可平行（兩個 Muse session、各自分支、不改同一檔案）。
 
 ## 每個任務怎麼跑
-1. 終端機 `cd ~/PERSONAL/META_Hackathon/spirit-quest`，`git switch main && git pull`（若有 remote），再 `muse`。
-2. 確認模型：`/model muse-spark-1.3-contributor`（開發用，便宜；程式碼會被 Meta 用於訓練，repo 本來就公開）。
-3. 貼上該任務檔最下方「開場指令」。大任務先用 `/plan`，看過計畫再放行。
+1. 終端機 `cd ~/PERSONAL/META_Hackathon/spirit-quest`，`git switch main && git pull`（若有 remote）。
+2. 依任務啟動（effort 預設見 AGENTS.md「模型與 effort 預設」；contributor 便宜，程式碼會被 Meta 用於訓練，repo 本來就公開）：
+   | 任務 | 啟動指令 |
+   |---|---|
+   | M0 M1 M3 M4 | `muse --model muse-spark-1.3-contributor --reasoning-effort high` |
+   | M2 M5 M6 | `muse --model muse-spark-1.3-contributor --reasoning-effort medium` |
+   第一次開這個 repo 時 Muse 會要求信任資料夾；要信任，AGENTS.md 與 muse-team skill 才會載入。
+3. 貼上該任務檔最下方「開場指令」。大任務先用 `/plan`，看過計畫再放行。要拆給多個子代理平行做（例如 M3＋M4）時用 `/muse-team`。
 4. Muse 收尾後，請 Claude Code 審查該分支（`git diff main...feat/xxx`），通過後開 PR，你回「Pass」才合併。
 5. 中途當機：`muse resume`。
 

@@ -9,7 +9,7 @@
 ## 範圍內
 1. `npm install`：hono、@hono/node-server、zod（記錄實際安裝版本）。
 2. scripts/probe.mjs（`npm run probe`），每個模型最多 2 次請求，逐項記錄 HTTP 狀態、延遲 ms、usage、回應結構（截斷內容，不存完整圖片）：
-   - muse-spark-1.3：`POST /v1/responses`。測兩件事：(a) 是否支援 JSON schema 結構化輸出（OpenAI 相容的 `text.format` / `response_format` 擇一試）；(b) 圖片輸入（用 public/assets/fairy.webp 縮圖）。
+   - muse-spark-1.3：`POST /v1/responses`。測三件事：(a) 是否支援 JSON schema 結構化輸出（OpenAI 相容的 `text.format` / `response_format` 擇一試）；(b) 圖片輸入（用 public/assets/fairy.webp 縮圖）；(c) `reasoning_effort`（文件 https://dev.meta.ai/docs/reasoning.md）：同一句心意分別用 none／low／medium 各跑 1 次，比較延遲、輸出 tokens 與台詞品質，選出遊戲端預設值。
    - muse-image-1.0：`/v1/images/generations` 生 1 張 512px；`/v1/images/edits` 用上一張改 1 次（例如加一圈星光），確認角色是否維持。圖片存 data/probe/，不進 git。
    - sam-3.1：`POST /v1/responses`，對 public/assets/vignettes.webp 用文字提示（如 "bread"）取得 boxes/masks，記錄遮罩格式（RLE、PNG、polygon？）。
    - muse-voice-transcribe-1.0：用 macOS `say -o data/probe/hello.aiff "謝謝今天的晚餐"` 轉 wav 或 m4a 後測一次，記錄端點與格式；若端點不明，記錄嘗試過程並標 blocked。
