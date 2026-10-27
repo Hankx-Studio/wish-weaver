@@ -1,0 +1,16 @@
+{
+  "name": "spirit-quest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fairy Companion: Wish Weaver - a cozy gratitude game powered by Meta Muse models",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --env-file=.env --watch server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "test": "node --test tests/",
+    "probe": "node --env-file=.env scripts/probe.mjs"
+  }
+}
