@@ -1,0 +1,66 @@
+{
+ "at": "2026-10-28T02:18:54.579Z",
+ "clearedStorageStart": {
+  "xp": 0
+ },
+ "rounds": [
+  {
+   "ritual": "meal",
+   "source": "meta_live",
+   "element": "ember",
+   "effect": "glow",
+   "safety": "none",
+   "spirit_line": "阿姨記得你，早餐暖暖的！",
+   "gained": 10,
+   "usage": {
+    "input_tokens": 371,
+    "output_tokens": 599,
+    "cost_usd": 0.0030095
+   }
+  },
+  {
+   "ritual": "gratitude",
+   "source": "meta_live",
+   "element": "ember",
+   "effect": "glow",
+   "safety": "none",
+   "spirit_line": "心裡暖暖的，謝謝那份善意",
+   "gained": 10,
+   "usage": {
+    "input_tokens": 362,
+    "output_tokens": 591,
+    "cost_usd": 0.00296425
+   }
+  },
+  {
+   "ritual": "bedtime",
+   "source": "meta_live",
+   "element": "star",
+   "effect": "constellation",
+   "safety": "none",
+   "spirit_line": "晚安，明天也會閃閃發光喔",
+   "gained": 10,
+   "usage": {
+    "input_tokens": 362,
+    "output_tokens": 709,
+    "cost_usd": 0.00346575
+   }
+  }
+ ],
+ "stateAfter3": {
+  "xp": 30,
+  "crystals": {
+   "ember": 2,
+   "star": 1
+  },
+  "wishes": 3
+ },
+ "demo": {
+  "gained": 30,
+  "xp": 30,
+  "stage": 1,
+  "threshold": 30,
+  "hook": "精靈正在醞釀變化…（stage 1，演化將在 M3 到來）"
+ },
+ "totalCostUsd": 0.0094395
+}

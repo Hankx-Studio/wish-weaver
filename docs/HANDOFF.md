@@ -1,5 +1,25 @@
 # 交接紀錄（最新在最上面）
 
+## M2 遊戲主循環（前端） — 2026-10-28 11:00（台北） — 狀態：done
+- 完成：public/app.js（50 行原型）拆成 ES modules：public/js/config.js（GAME_SPEC §4 全部數值）、
+  state.js（key `wishweaver.v1`、版本號、損壞重置；純函式可被 node:test import）、api.js（timeout 25s 競速＋友善錯誤＋ApiError kind）、
+  effects.js（6 元素光效＋typewriter＋prefers-reduced-motion＋onThresholdReached 掛鉤）、views/home|rituals|ritual|result|growth.js、main.js（路由＋demo/preview＋頁尾真實狀態）。
+  新玩家 0 XP＋stage0 粒子光球；fairy.webp 只在 `?preview=fairy`。導覽縮為精靈花庭/日常儀式/成長之書；範圍外頁全移除。
+  儀式頁 3 儀式＋自由心意、120 字計數、「精靈聆聽中」；結果頁光效＋逐字＋XP/結晶、support 求助卡（1925/110/119）無慶祝、block 婉拒無 XP；
+  fallback 角落徽章；成長之書 XP 條/6 結晶/近 20 筆/清除按鈕；`?demo=1` ×3＋展示徽章；頁尾接 /api/health 真實狀態。
+- 改動檔案：public/index.html（重寫 module 殼）、public/style.css（M2 段落附加）、public/js/（新增 11 檔）、
+  public/app.js（刪除）、tests/state.test.js（新增 17 tests）、docs/evidence/m2/rounds.json（新增）。
+- 測試：`npm test` 67/67 pass（M1 50＋state 17）；3 輪真實心意全 meta_live（見 rounds.json）；
+  demo 1 輪 30 XP→stage1→hook；離線 kind=offline＋友善訊息＋重試鈕（node 實測 api.js；UI 重試渲染同槽）。
+- 未測：4 視圖×2 尺寸截圖（sandbox 跑不起 Chrome headless 也禁 listen，defer 到 M5 E2E/手動驗收）；
+  真機逐字/typewriter 視覺、support/block 真實分支（驗收用 wishes 全 safety=none）。
+- 阻礙：sandbox 禁 listen()（驗收改走 app.request in-process）、禁背景程序、Chrome headless 無輸出。
+- Meta 用量：wish×6（兩批各 3）/ in ~2190＋out ~4020 tokens / 成本 ≈ US$0.02（« $1）。明細見 rounds.json（第二批 $0.0094395）。
+- 決策：api.js timeout 用 Promise.race 而非只靠 AbortSignal（忽略 signal 的實作也不會卡死）；安靜完成走本地 fallback（不花錢）。
+- 下一步：M3 演化（接 onThresholdReached、生圖＋IndexedDB）。
+
+---
+
 每個任務結束時新增一段，格式：
 
 ```

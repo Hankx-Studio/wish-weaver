@@ -14,3 +14,36 @@
 .cast-spark{position:absolute;left:50%;top:46%;width:5px;height:5px;background:#ffefb4;border-radius:50%;box-shadow:0 0 13px 4px #ffe69a;animation:spark-out 1.7s ease-out both}.cast-spark:nth-child(3n){background:#d5f5d6;box-shadow:0 0 10px 4px #d4edc4}.cast-spark:nth-child(3n+1){background:#f8d5c1}@keyframes spark-out{from{transform:translate(0,0) scale(.4);opacity:0}25%{opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
 
 .wire .twin-stage img{visibility:hidden}.wire .twin-stage:first-child:before{content:"";position:absolute;inset:10% 16%;border:1px dashed #a7b093;background:#dce1d2;border-radius:45%}.twin-stage{position:relative}
+/* M2: orb, badges, ritual/result/growth additions */
+.orb-wrap{position:relative;width:210px;height:210px;display:grid;place-items:center}
+.orb-core{width:74px;height:74px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#fffdf0,#ffe9a8 55%,#e8c877 100%);box-shadow:0 0 34px 10px #ffedb788,0 0 90px 30px #f9e6a944;animation:float 6s ease-in-out infinite}
+.orb-ring{position:absolute;border:1px solid #c8ae5c;border-radius:50%;opacity:.7}
+.orb-ring.r1{width:170px;height:64px;transform:perspective(230px) rotateX(58deg)}
+.orb-ring.r2{width:130px;height:130px;animation:circle-spin 35s linear infinite;border-style:dashed;opacity:.5}
+.orb-mote{position:absolute;width:5px;height:5px;border-radius:50%;background:#fff2b5;box-shadow:0 0 12px 3px #f5dd8b;animation:mote 9s ease-in-out infinite}
+.orb-mote.m1{left:12%;top:30%}.orb-mote.m2{left:82%;top:24%;animation-delay:1.2s}.orb-mote.m3{left:20%;top:74%;animation-delay:2.1s}.orb-mote.m4{left:76%;top:70%;animation-delay:3s}.orb-mote.m5{left:50%;top:8%;animation-delay:4s}.orb-mote.m6{left:44%;top:88%;animation-delay:5s}
+.demo-badge{font-size:10px;border:1px solid #b99a5d;padding:3px 10px;border-radius:20px;color:#5b4625;background:#f4e7be}
+.rest-badge{position:absolute;right:12px;top:10px;font-size:10px;border:1px solid #cbb486;padding:3px 10px;border-radius:20px;color:#806534;background:#fbf5e5}
+.count-row{text-align:right;font-size:11px;color:#6b715e;margin:6px 0 0}
+.form-error{color:#895f49;font-size:13px;background:#f9ece2;border:1px solid #c29b85;border-radius:8px;padding:10px 14px}
+.listening{color:#4c6a58;font-size:14px;animation:twinkle 1.6s ease-in-out infinite}
+.error-slot{margin:10px 0}.error-slot:empty{display:none}
+.spirit-line{font-family:var(--serif);font-size:19px;line-height:2;min-height:3em;color:#4d5d48}
+.support-card{border:1px solid #c29b85;border-radius:12px;padding:16px;background:#fdf6ee;margin:10px 0}
+.threshold-note{color:#87642d;font-size:13px;border-top:1px dashed #cbb88b;padding-top:10px}
+.crystal-grid{list-style:none;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0;margin:12px 0}
+.crystal-grid li{display:flex;align-items:center;gap:7px;font-size:12px}
+.crystal-dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+.c-light{background:#ffefb4}.c-bloom{background:#f0a8bc}.c-water{background:#8fb8dd}.c-wind{background:#9cc3ab}.c-ember{background:#dd9a55}.c-star{background:#9aa2dd}
+.wish-list{list-style:none;padding:0;margin:10px 0;display:grid;gap:8px}
+.wish-list li{font-size:12px;border-bottom:1px dashed #cbb88b;padding-bottom:8px}
+.wish-list small{display:block;color:#6b715e}
+.growth-paper{max-width:640px;margin:0 auto}
+.ritual-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ritual-card{background:#fffdf5;border:1px solid #cbb88b;border-radius:12px;overflow:hidden;text-align:left;padding:0}
+.ritual-card h2{font-family:var(--serif);font-size:18px;margin:0 0 4px}
+.ritual-card p{font-size:11px;color:#68705f;margin:0}
+.ritual-card .card-copy{padding:14px 16px}
+.ritual-art{height:110px}
+.stage.casting .orb-core{filter:drop-shadow(0 0 28px #fff7b8);transform:scale(1.06)}
+.demo-footer{display:flex;justify-content:center;gap:12px;padding:26px 18px 110px;font-size:11px;color:#6b715e}
