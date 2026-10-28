@@ -112,7 +112,7 @@ export function pickBest(records) {
   }
   if (!best) return null;
   const { record, raster } = best;
-  return { id: record.id, frame: record.frame, box: record.box, raster };
+  return { id: record.id, frame: record.frame, box: record.box, mask: record.mask, raster };
 }
 
 export function decodeMaskSafe(mask) {
