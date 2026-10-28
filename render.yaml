@@ -1,0 +1,38 @@
+# Render blueprint — spirit-quest (single process, no build step).
+# Human picks the platform; DO NOT deploy from this branch (AGENTS.md).
+services:
+  - type: web
+    name: spirit-quest
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: META_API_BASE
+        value: https://api.meta.ai/v1
+      - key: MODEL_TEXT
+        value: muse-spark-1.3
+      - key: MODEL_IMAGE
+        value: muse-image-1.0
+      - key: MODEL_SEG
+        value: sam-3.1
+      - key: MODEL_ASR
+        value: muse-voice-transcribe-1.0
+      - key: DAILY_BUDGET_USD
+        value: 2
+      - key: TOTAL_BUDGET_USD
+        value: 20
+      - key: LIMIT_WISH_PER_HOUR
+        value: 30
+      - key: LIMIT_EVOLVE_PER_DAY
+        value: 6
+      - key: LIMIT_SCAN_PER_DAY
+        value: 10
+      - key: LIMIT_TRANSCRIBE_PER_HOUR
+        value: 30
+      - key: MODEL_API_KEY
+        sync: false

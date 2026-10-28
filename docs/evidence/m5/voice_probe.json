@@ -1,0 +1,14 @@
+{
+  "ts": "2026-10-28T02:53:35.356Z",
+  "http": 200,
+  "source": "meta_live",
+  "transcript": "",
+  "audioDurationMs": 2000,
+  "usage": {
+    "seconds": 2,
+    "cost_usd": 0.00009999999999999999
+  },
+  "reason": "empty_transcript",
+  "latencyMs": 1717,
+  "note": "sine tone carries no speech; empty transcript is the CORRECT live-model answer"
+}

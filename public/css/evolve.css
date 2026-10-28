@@ -1,0 +1,100 @@
+/* M3 evolution styles. Never edit style.css — everything evolve-specific
+   lives here; index.html links this file (see m3_wiring.md). */
+.evolve-wrap .evolve-paper {
+  position: relative;
+  overflow: hidden;
+}
+
+.evolve-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.src-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+
+.src-badge.live {
+  background: #e7f3ff;
+  color: #1c5d99;
+}
+
+.src-badge.fixture {
+  background: #f3ede2;
+  color: #7a6a53;
+}
+
+.evolve-family {
+  font-size: 0.8rem;
+  color: #8a7f70;
+}
+
+.evolve-paper .compare {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  margin: 0.6rem 0 1rem;
+}
+
+.evolve-paper .compare figure {
+  margin: 0;
+  text-align: center;
+}
+
+.evolve-paper .compare img {
+  width: min(38vw, 200px);
+  height: auto;
+  border-radius: 1rem;
+  background: radial-gradient(circle, #fffbe8 0%, #f6ecd4 70%);
+}
+
+.evolve-paper .compare figcaption {
+  font-size: 0.78rem;
+  color: #8a7f70;
+  margin-top: 0.3rem;
+}
+
+.evolve-story {
+  margin: 0.4rem 0 0.8rem;
+  padding: 0.7rem 1rem;
+  border-left: 3px solid #e8c872;
+  background: #fffdf4;
+  border-radius: 0 0.8rem 0.8rem 0;
+}
+
+.evolve-story p {
+  margin: 0.2rem 0;
+}
+
+/* Cocoon transition: glow wraps the card for ~3s (JS removes the class). */
+.evolve-paper.evolving::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255, 244, 200, 0.95) 0%, rgba(255, 244, 200, 0) 70%);
+  animation: cocoon 3s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes cocoon {
+  0% { opacity: 0; transform: scale(0.85); }
+  35% { opacity: 1; transform: scale(1.02); }
+  70% { opacity: 0.9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evolve-paper.evolving::after {
+    animation: evolve-fade 0.6s ease;
+  }
+}
+
+@keyframes evolve-fade {
+  from { opacity: 0; }
+  to { opacity: 0.6; }
+}

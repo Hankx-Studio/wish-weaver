@@ -1,0 +1,67 @@
+{
+  "ts": "2026-10-28T02:12:51.202Z",
+  "base": "http://127.0.0.1:8787",
+  "totalCostUsd": 0.008577999999999999,
+  "requests": [
+    {
+      "wish": "謝謝媽媽今天煮了我最愛的番茄炒蛋。",
+      "ritual": "gratitude",
+      "http": 200,
+      "source": "meta_live",
+      "element": "ember",
+      "mood": "grateful",
+      "intensity": 2,
+      "safety": "none",
+      "spirit_line": "媽媽的愛暖暖藏在晚餐裡",
+      "usage": {
+        "input_tokens": 361,
+        "output_tokens": 539,
+        "cost_usd": 0.002742
+      },
+      "reason": null,
+      "latencyMs": 2952,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "wish": "Thank you for this warm bowl of soup on a rainy day.",
+      "ritual": "meal",
+      "http": 200,
+      "source": "meta_live",
+      "element": "ember",
+      "mood": "grateful",
+      "intensity": 2,
+      "safety": "none",
+      "spirit_line": "Warm soup hugs your rainy heart",
+      "usage": {
+        "input_tokens": 359,
+        "output_tokens": 518,
+        "cost_usd": 0.00265025
+      },
+      "reason": null,
+      "latencyMs": 1916,
+      "valid": true,
+      "errors": []
+    },
+    {
+      "wish": "今天好累，考試考不好，有點想哭。",
+      "ritual": "bedtime",
+      "http": 200,
+      "source": "meta_live",
+      "element": "star",
+      "mood": "tired",
+      "intensity": 1,
+      "safety": "support",
+      "spirit_line": "抱抱你，好好睡，明天會更好",
+      "usage": {
+        "input_tokens": 359,
+        "output_tokens": 644,
+        "cost_usd": 0.00318575
+      },
+      "reason": null,
+      "latencyMs": 2679,
+      "valid": true,
+      "errors": []
+    }
+  ]
+}

@@ -5,6 +5,7 @@ node_modules/
 data/
 *.log
 .DS_Store
-.agents/
+.agents/plans/
 test-results/
 playwright-report/
+.worktrees/

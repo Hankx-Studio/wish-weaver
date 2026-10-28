@@ -1,0 +1,45 @@
+{
+  "asset": "public/assets/market.webp",
+  "target": "bowl",
+  "status": 200,
+  "body": {
+    "source": "meta_live",
+    "ok": true,
+    "matched": true,
+    "found": true,
+    "quest_id": "q-2026-10-28-ember-normal",
+    "boxes": [
+      {
+        "x1": 1430,
+        "y1": 261,
+        "x2": 1846,
+        "y2": 527,
+        "w": 2048,
+        "h": 683
+      },
+      {
+        "x1": 1813,
+        "y1": 346,
+        "x2": 2039,
+        "y2": 531,
+        "w": 2048,
+        "h": 683
+      }
+    ],
+    "mask_rle_preview": "~!!$GQ#K{$Y$Co*Y[Vp&m+S8LF7pVE[xe@fx41:Z]%N=nQI@^Aq$+:dU=_h+d_[8",
+    "mask_hash": "3dfb961f",
+    "mask_tiny": {
+      "w": 64,
+      "h": 41,
+      "b64": "AAAAAAAAAAAAAAH///gAAAAAP////8AAAAP/////+AAAH///////AAB////////AAP//4AA///AD//gAAAP/+A//wAAAAP/8H/8AAAAAH/4/+AAAAAAH/z/wAAAAAAH/f8AAAAAAAf9/AAAAAAAAf34AAAAAAAA/fgAAAAAAAB9+AAAAAAAAHn4AAAAAAAAYPAAAAAAAAAA8AAAAAAAAABwAAAAAAAAgHgAAAAAAAGAfgAAAAAAB4A/gAAAAAAfgD/wAAAAAP+AH/8AAAAP/4Af//4AD///AA////////4AB////////gAD///////8AAP///////gAAP//////8AAAf//////gAAA//////4AAAA//////AAAAB/////wAAAAA////+AAAAAB////wAAAAAD///+AAAAAAD///wAAAAAAB//4AAAA=="
+    },
+    "spirit_line": "哇！熱騰騰的碗找到啦，好溫暖好棒！",
+    "usage": {
+      "images_processed": 1,
+      "input_tokens": 2026,
+      "output_tokens": 375,
+      "cost_usd": 0.00662625
+    },
+    "xp_awarded": 20
+  }
+}

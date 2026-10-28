@@ -1,0 +1,45 @@
+{
+  "asset": "public/assets/market.webp",
+  "target": "bread",
+  "status": 200,
+  "body": {
+    "source": "meta_live",
+    "ok": true,
+    "matched": true,
+    "found": true,
+    "quest_id": "q-2026-10-28-ember-normal",
+    "boxes": [
+      {
+        "x1": 365,
+        "y1": 208,
+        "x2": 602,
+        "y2": 407,
+        "w": 2048,
+        "h": 683
+      },
+      {
+        "x1": 116,
+        "y1": 237,
+        "x2": 431,
+        "y2": 438,
+        "w": 2048,
+        "h": 683
+      }
+    ],
+    "mask_rle_preview": "~!!#.Z#K{$Zb'2H?&tHUPi+0{uc$_GZqj=J(kS{2!bc2VAM(-KKw@]('2(_XJ=Zw",
+    "mask_hash": "fc7041e3",
+    "mask_tiny": {
+      "w": 64,
+      "h": 41,
+      "b64": "AAAAfAAAAAAAAB//gAAAAAAB///4AAAAAAf///4AAAAAD////4AAAAAf////4AAAAD/////4AAAA//////wAAAH//////wAAA///////gAAH///////gAA////////AAD///////8AAf///////4AD////////wAP////////gB/////////AH////////+Af/4f/////8B//g//////wAP8D//////gAPgH/////+AAOAP/////8AAAA//////4AAAB//////gAAAH//////AAAAH4////8AAAACB////4AAAAAAf///gAAAAAA///+AAAAAAD///4AAAAAAP///wAAAAAA8f//AAAAAAAA//8AAAAAAAD//wAAAAAAAf//AAAAAAAAH/8AAAAAAAAD/wAAAAAAAAP/AAAAAAAAA/8AAAAAAAABzg=="
+    },
+    "spirit_line": "香香的麵包找到了，森林好溫暖喔！",
+    "usage": {
+      "images_processed": 1,
+      "input_tokens": 2025,
+      "output_tokens": 346,
+      "cost_usd": 0.006501750000000001
+    },
+    "xp_awarded": 20
+  }
+}

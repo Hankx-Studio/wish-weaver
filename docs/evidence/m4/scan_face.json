@@ -1,0 +1,94 @@
+{
+  "asset": "public/assets/fairy.webp",
+  "target": "flower",
+  "status": 200,
+  "body": {
+    "source": "meta_live",
+    "ok": true,
+    "matched": false,
+    "found": false,
+    "quest_id": "q-2026-10-28-ember-normal",
+    "boxes": [
+      {
+        "x1": 723,
+        "y1": 183,
+        "x2": 763,
+        "y2": 229,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 389,
+        "y1": 946,
+        "x2": 432,
+        "y2": 980,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 420,
+        "y1": 519,
+        "x2": 458,
+        "y2": 567,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 391,
+        "y1": 409,
+        "x2": 441,
+        "y2": 488,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 436,
+        "y1": 937,
+        "x2": 460,
+        "y2": 959,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 356,
+        "y1": 640,
+        "x2": 384,
+        "y2": 668,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 332,
+        "y1": 679,
+        "x2": 356,
+        "y2": 709,
+        "w": 900,
+        "h": 1080
+      },
+      {
+        "x1": 304,
+        "y1": 825,
+        "x2": 324,
+        "y2": 850,
+        "w": 900,
+        "h": 1080
+      }
+    ],
+    "mask_rle_preview": "~!!!0-!0cYlH?0lxCZmf?_$mHMDNOU'0M_k6Fu!K0GO:$?rLefH-[.9eser!F=da",
+    "mask_hash": "dfc00a5c",
+    "mask_tiny": {
+      "w": 61,
+      "h": 70,
+      "b64": "AAAB4AAAAAAAAD/4AAAAAAAD/+AAAAAAAD//gAAAAAAD//4AAAAAAB//8AAAAAAB///AAAAAAA///wAAAAAA///4AAAAAAf//8AAAAAAP///AAAAAAP///gAAAAAH///4AAAAAH///8AeAAAH////B/wAA///////8AB////////AB////////gB////////wD////////4D////////8D////////+B////////+B/////////A/////////gf////////wP////////wH////////4D////////8B/////////A/////////wP////////8H/////////B/////////w/////////8P/////////D/////////g/////////wP////////4D////////8Af///////8AB///////+AAf//////+AAH//////+AAD//////+AAB//////8AAA//////4AAAf/////4AAAP/////gAAAH/////gAAAH/////gAAAB/////4AAAA/////8AAAAf////+AAAAP/////gAAAD/////wAAAB/////4AAAAf////8AAAAH////+AAAAA/////AAAAAH////gAAAAA////wAAAAAP///wAAAAAH///4AAAAAB///4AAAAAAf//wAAAAAAD//gAAAAAAA//AAAAAAAAB/AAAAAAAAAOAAAA"
+    },
+    "spirit_line": "精靈只收集物品喔，這張先不收錄。",
+    "human": true,
+    "usage": {
+      "images_processed": 1,
+      "input_tokens": 1391,
+      "output_tokens": 483,
+      "cost_usd": 0.0062915
+    },
+    "xp_awarded": 0
+  }
+}
