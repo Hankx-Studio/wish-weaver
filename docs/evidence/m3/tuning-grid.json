@@ -1,0 +1,68 @@
+{
+  "model": "muse-image-1.0",
+  "grid": [
+    {
+      "mix": "bloom",
+      "family": "flower",
+      "stages": [
+        {
+          "stage": 1,
+          "file": "docs/evidence/m3/grid/bloom-s1.webp",
+          "prompt": "Japanese fantasy anime style, super-deformed chibi proportions about 2.7 heads tall, opaque ivory petal outfit with restrained antique-gold Baroque embroidery, "
+        },
+        {
+          "stage": 2,
+          "file": "docs/evidence/m3/grid/bloom-s2.webp",
+          "prompt": "Keep the exact same character: same face, same hair color and hairstyle, same proportions and pose. ONLY add the new traits described, change nothing else. ONLY"
+        },
+        {
+          "stage": 3,
+          "file": "docs/evidence/m3/grid/bloom-s3.webp",
+          "prompt": "Keep the exact same character: same face, same hair color and hairstyle, same proportions and pose. ONLY add the new traits described, change nothing else. ONLY"
+        }
+      ]
+    },
+    {
+      "mix": "tide",
+      "family": "animal",
+      "stages": [
+        {
+          "stage": 1,
+          "file": "docs/evidence/m3/grid/tide-s1.webp",
+          "prompt": "Japanese fantasy anime style, super-deformed chibi proportions about 2.7 heads tall, opaque ivory petal outfit with restrained antique-gold Baroque embroidery, "
+        },
+        {
+          "stage": 2,
+          "file": "docs/evidence/m3/grid/tide-s2.webp",
+          "prompt": "Keep the exact same character: same face, same hair color and hairstyle, same proportions and pose. ONLY add the new traits described, change nothing else. ONLY"
+        },
+        {
+          "stage": 3,
+          "file": "docs/evidence/m3/grid/tide-s3.webp",
+          "prompt": "Keep the exact same character: same face, same hair color and hairstyle, same proportions and pose. ONLY add the new traits described, change nothing else. ONLY"
+        }
+      ]
+    },
+    {
+      "mix": "starlight",
+      "family": "flower",
+      "stages": [
+        {
+          "stage": 1,
+          "file": "docs/evidence/m3/grid/starlight-s1.webp",
+          "prompt": "Japanese fantasy anime style, super-deformed chibi proportions about 2.7 heads tall, opaque ivory petal outfit with restrained antique-gold Baroque embroidery, "
+        },
+        {
+          "stage": 2,
+          "file": "docs/evidence/m3/grid/starlight-s2.webp",
+          "prompt": "Keep the exact same character: same face, same hair color and hairstyle, same proportions and pose. ONLY add the new traits described, change nothing else. ONLY"
+        },
+        {
+          "stage": 3,
+          "file": "docs/evidence/m3/grid/starlight-s3.webp",
+          "prompt": "Keep the exact same character: same face, same hair color and hairstyle, same proportions and pose. ONLY add the new traits described, change nothing else. ONLY"
+        }
+      ]
+    }
+  ]
+}
