@@ -16,6 +16,37 @@
 
 ---
 
+## M1 後端代理（含預算守門） — 2026-10-28 10:20（台北） — 狀態：done
+- 完成：server/ 全實作（config/metaClient/budget/rateLimit/usageLog/schemas/fixtures/prompts/wish、
+  routes health+wish、evolve/quest/scan/transcribe 501 stubs、index Hono app＋靜態 public/）；
+  tests/ 9 檔 50 測全過；smoke 3/3 meta_live；DAILY_BUDGET_USD=0 證實回 fallback；缺 key 啟動即報錯退出 1。
+- 改動檔案：server/config.js、server/metaClient.js（含去重 /v1 修正）、server/budget.js、
+  server/rateLimit.js、server/usageLog.js、server/schemas.js、server/fixtures.js、
+  server/prompts/wish.js、server/routes/health.js、server/routes/wish.js、
+  server/routes/evolve.js、server/routes/quest.js、server/routes/scan.js、
+  server/routes/transcribe.js、server/index.js、tests/*.test.js（9 檔）、
+  scripts/smoke-wish.mjs、docs/evidence/m1_smoke.json。
+- 測試：`npm test --cache /tmp/npm-cache-m1` → 50 pass / 0 fail（含輸入驗證、壞 JSON 重試後 fallback、
+  重試成功復原、預算用盡、per-IP 限流＋Retry-After、block/support 分支、usage 無原文、靜態檔、501 stubs）。
+  smoke：gratitude 中文 ember/grateful（2952ms, $0.002742）、meal 英文 ember/grateful（1916ms, $0.002650）、
+  bedtime 負面情緒 star/tired＋safety=support（2679ms, $0.003186），3/3 meta_live 且格式全 valid。
+  預算零點：PORT=8788＋DAILY/TOTAL=0 → 200 fallback_fixture＋reason=budget_exhausted（health 顯示已用 0.008578/上限 0）。
+  `grep -rn MODEL_API_KEY public/` 0 筆；repo 內無 Bearer/sk- 金鑰字串；usage.jsonl 無玩家原文（0 命中）。
+- 未測：併發/重啟後 budget 重建（僅程式邏輯＋單元測試覆蓋，未做 kill -9 實測）；限流分散式情境（單程序假設）。
+- 阻礙：①sandbox 擋 listen（EPERM），改走 require_escalated 跑本機伺服器才完成 smoke。②初版 metaClient
+  把 META_API_BASE 後再拼 /v1 造成 /v1/v1 404 而全回 fallback（M0 已踩過的坑）；已修＋加測試鎖定。
+- Meta 用量：本任務實測 4 次呼叫（instructions 探測 1＋smoke 3）/ in 約 1244＋out 約 2294 tokens /
+  圖片 0 / 成本 ≈ US$0.0113（« $0.5；來源：m1_smoke.json＋探測輸出）。
+- 決策：①契約凍結優先——health 照 API_CONTRACT（ok/version/budget.daily_used_usd/daily_cap_usd/models），
+  不用 brief 內另一形狀；請求欄位用契約的 `wish`（不用任務檔的 `text`）。
+  ②限流在玩家端點回 200 fallback＋reason＋Retry-After（依 brief 流程與 M1_backend §範圍內；
+  契約的 429 保留給非玩家端點/未來）。③模型失敗也附 reason=model_unavailable（契約只說 fallback，
+  多帶原因便於除錯）。④系統提示用 Responses `instructions` 頂層參數（已真機驗證 200）。
+  ⑤enum schema 仍擋不住模型（再現 intensity 8、safety 自由文字），伺服器鉗制＋映射才是真正防線。
+  ⑥unknown safety 字串 fail-closed → support。
+- 下一步：M2 遊戲主循環（前端用契約 `wish` 欄位打 /api/wish；展示 `help` 與 fallback 標示）。
+- 建議：M5 前記得重測 transcribe 中文語音（M0 未驗）。
+
 ## M0 探測與契約凍結 — 2026-10-28 09:45（台北） — 狀態：done
 - 完成：五模型皆有真實 200 結果；凍結 API_CONTRACT v1.0；GAME_SPEC 轉 v1.0 凍結並補語音價格。
 - 改動檔案：scripts/probe.mjs（新增，`npm run probe`，支援 `npm run probe -- <only>` 子集重跑）、
