@@ -1,18 +1,11 @@
-// SAM 3.1 wire-format parser + mask decoder.
-// Independent implementation of the documented output grammar
-// (dev.meta.ai/docs/sam/reading-segmentation): each line is a frame
-// `<Nf>` followed by comma-separated records
-// `id<|box;x1;...;w;h|><|mask;x=0;y=0;data=H,W,ENC+base85|>`,
-// with `~` = lossless (default) and `!` = one_bit mask encodings.
-// Pure functions only (no fetch, no DOM): node tests and the browser
-// share this file. Anything undecodable yields null so callers fall
-// back to the box crop (never throws on model output).
+// SAM 3.1 wire parser + mask decoder (documented grammar; `~`=lossless,
+// `!`=one_bit). Pure functions (no fetch/DOM) shared by node + browser.
+// Undecodable output yields null so callers fall back to the box crop.
 const FRAME_RE = /<(\d+)f(?:;[^>]*)?>/;
 const RECORD_RE = /,?(\d+)((?:<\|[^|]*\|>)+)/g;
 const TOKEN_RE = /<\|([A-Za-z][\w.-]*)(?:;([^|]*))?\|>/g;
 const MASK_DATA_RE = /^(\d+),(\d+),([!~][\s\S]+)$/;
 
-// Parse one Responses output_text string into records.
 export function parseSamOutput(text) {
   const records = [];
   const warnings = [];
@@ -129,9 +122,7 @@ export function decodeMask(mask) {
   if (mask.encoding === "one_bit") return decodeOneBit(payload, w, h);
   return decodeLossless(payload, w, h);
 }
-
-// FNV-1a hex of the payload: dedup key (contract never ships the
-// full mask to the frontend, only this hash + a short preview).
+// FNV-1a hex of the payload: dedup key.
 export function maskHash(payload) {
   let v = 0x811c9dc5;
   for (let i = 0; i < payload.length; i += 1) {
@@ -145,8 +136,7 @@ export function maskPreview(payload, n = 64) {
   return String(payload || "").slice(0, n);
 }
 
-// --- custom base85 framing: 5-char length prefix, then 5 chars per
-// 4 bytes (alphabet = 0x21..0x7e minus " \ , ; < > |). ---
+// Custom base85: 5-char length prefix, 5 chars per 4 bytes.
 const B85 = (() => {
   let s = "";
   for (let c = 0x21; c <= 0x7e; c += 1) {
@@ -198,8 +188,7 @@ function b85unpack(payload) {
   }
   return out;
 }
-
-// --- adaptive binary range decoder (shared by both encodings). ---
+// Adaptive binary range decoder (shared by both encodings).
 function makeRangeDecoder(input) {
   if (input.length < 4) throw new Error("no finalization");
   let pos = 0;
@@ -266,8 +255,7 @@ function zeroCtx(res, off, x, y, w) {
   return l | (u << 1) | (ul << 2) | (ur << 3);
 }
 
-// One adaptive symbol (see grammar doc: zero-flag then, when 1, a
-// 3-model mixture over symbols 1..255).
+// One adaptive symbol: zero-flag, then a 3-model mixture for 1..255.
 function decodeSymbol(dec, st, res, off, x, y, w) {
   const zo = zeroCtx(res, off, x, y, w) << 1;
   const z0 = st.zero[zo];
@@ -279,65 +267,70 @@ function decodeSymbol(dec, st, res, off, x, y, w) {
     st.zero[zo] = (st.zero[zo] >> 1) || 1;
     st.zero[zo + 1] = (st.zero[zo + 1] >> 1) || 1;
   }
-  let sym = 0;
-  if (bit === 1) {
-    const above = off >= w ? res[off - w] : 0;
-    const key = (st.prev << 8) | above;
-    let second = st.two.get(key);
-    if (!second) {
-      second = new Uint16Array(257);
-      st.two.set(key, second);
-    }
-    const fo = st.prev << 8;
-    const excl = second[0] + st.one[fo] + st.z[0];
-    const total = second[256] + st.oneT[st.prev] + st.zT - excl;
-    const target = dec.freq(total);
-    let cum = 0;
-    sym = 1;
-    let f = second[1] + st.one[fo + 1] + st.z[1];
-    while (cum + f <= target) {
-      cum += f;
-      sym += 1;
-      if (sym >= 256) throw new Error("malformed symbol");
-      f = second[sym] + st.one[fo + sym] + st.z[sym];
-    }
-    dec.decode(cum, f);
-    second[sym] += 616;
-    second[256] += 616;
-    if (second[256] >= 50176) {
-      let t = 0;
-      for (let v = 0; v < 256; v += 1) {
-        second[v] >>= 1;
-        t += second[v];
-      }
-      second[256] = t;
-    }
-    st.one[fo + sym] += 56;
-    st.oneT[st.prev] += 56;
-    if (st.oneT[st.prev] >= 8192) {
-      let t = 0;
-      for (let v = 0; v < 256; v += 1) {
-        const s = (st.one[fo + v] >> 1) || 1;
-        st.one[fo + v] = s;
-        t += s;
-      }
-      st.oneT[st.prev] = t;
-    }
-    st.z[sym] += 32;
-    st.zT += 32;
-    if (st.zT >= 4096) {
-      let t = 0;
-      for (let v = 0; v < 256; v += 1) {
-        st.z[v] >>= 1;
-        t += st.z[v];
-      }
-      st.zT = t;
-    }
-  }
-  return sym;
+  return bit === 1 ? decodeMixture(dec, st, res, off, w) : 0;
 }
 
-// Lossless (`~`): predictor residuals, thresholded to 0/1 coverage.
+function decodeMixture(dec, st, res, off, w) {
+  const above = off >= w ? res[off - w] : 0;
+  const key = (st.prev << 8) | above;
+  let second = st.two.get(key);
+  if (!second) {
+    second = new Uint16Array(257);
+    st.two.set(key, second);
+  }
+  const fo = st.prev << 8;
+  const found = searchSymbol(dec, st, second, fo);
+  dec.decode(found.cum, found.f);
+  bumpModels(st, second, fo, found.sym);
+  return found.sym;
+}
+
+function searchSymbol(dec, st, second, fo) {
+  const total = second[256] + st.oneT[st.prev] + st.zT
+    - (second[0] + st.one[fo] + st.z[0]);
+  const target = dec.freq(total);
+  let cum = 0;
+  let sym = 1;
+  let f = second[1] + st.one[fo + 1] + st.z[1];
+  while (cum + f <= target) {
+    cum += f;
+    sym += 1;
+    if (sym >= 256) throw new Error("malformed symbol");
+    f = second[sym] + st.one[fo + sym] + st.z[sym];
+  }
+  return { sym, cum, f };
+}
+
+function scaleTable(table, keepOne) {
+  let t = 0;
+  for (let v = 0; v < 256; v += 1) {
+    table[v] = keepOne ? (table[v] >> 1) || 1 : table[v] >> 1;
+    t += table[v];
+  }
+  return t;
+}
+
+function bumpModels(st, second, fo, sym) {
+  second[sym] += 616;
+  second[256] += 616;
+  if (second[256] >= 50176) {
+    let t = 0;
+    for (let v = 0; v < 256; v += 1) {
+      second[v] >>= 1;
+      t += second[v];
+    }
+    second[256] = t;
+  }
+  st.one[fo + sym] += 56;
+  st.oneT[st.prev] += 56;
+  if (st.oneT[st.prev] >= 8192) {
+    st.oneT[st.prev] = scaleTable(st.one.subarray(fo, fo + 256), true);
+  }
+  st.z[sym] += 32;
+  st.zT += 32;
+  if (st.zT >= 4096) st.zT = scaleTable(st.z, false);
+}
+
 function decodeLossless(payload, w, h) {
   if (!payload.startsWith("~")) throw new Error("not lossless");
   const packed = b85unpack(payload.slice(1));
@@ -376,7 +369,6 @@ function ctxAt(pad, p, prior, earlier) {
     | (pad[earlier + 1] << 10) | (pad[earlier + 2] << 11);
 }
 
-// one_bit (`!`): binary raster with a 12-bit spatial context model.
 function decodeOneBit(payload, w, h) {
   if (!payload.startsWith("!")) throw new Error("not one_bit");
   const dec = makeRangeDecoder(b85unpack(payload.slice(1)));

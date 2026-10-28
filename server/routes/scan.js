@@ -56,6 +56,23 @@ function clientIp(c) {
   return (fwd && fwd.split(",")[0].trim()) || "unknown";
 }
 
+export function encodeTinyMask(raster, w, h) {
+  const tw = Math.min(64, w);
+  const th = Math.max(1, Math.round((h * tw) / w));
+  const bytes = new Uint8Array(Math.ceil((tw * th) / 8));
+  for (let y = 0; y < th; y += 1) {
+    for (let x = 0; x < tw; x += 1) {
+      const sx = Math.min(w - 1, Math.floor((x * w) / tw));
+      const sy = Math.min(h - 1, Math.floor((y * h) / th));
+      if (raster[sy * w + sx]) {
+        const i = y * tw + x;
+        bytes[i >> 3] |= 1 << (7 - (i & 7));
+      }
+    }
+  }
+  return { w: tw, h: th, b64: Buffer.from(bytes).toString("base64") };
+}
+
 function fallbackScan(reason, questId, opts = {}) {
   return {
     source: "fallback_fixture",
@@ -66,6 +83,7 @@ function fallbackScan(reason, questId, opts = {}) {
     boxes: [],
     mask_rle_preview: null,
     mask_hash: null,
+    mask_tiny: null,
     spirit_line: SCAN_FALLBACK_LINE,
     usage: { images_processed: 0, input_tokens: 0, output_tokens: 0, cost_usd: 0 },
     xp_awarded: 0,
@@ -203,11 +221,13 @@ export function createScanHandler({ config, budget, limiter = null, fetchImpl = 
     const { records } = parseSamOutput(samText);
     const best = pickBest(records);
     const boxes = records.map((r) => clampBox(r.box)).slice(0, 8);
+    const tiny = best && best.raster ? encodeTinyMask(best.raster, best.mask.w, best.mask.h) : null;
     const seg = best ? {
       boxes,
       mask_rle_preview: maskPreview(best.mask.payload),
       mask_hash: maskHash(best.mask.payload),
-    } : { boxes, mask_rle_preview: null, mask_hash: null };
+      mask_tiny: tiny,
+    } : { boxes, mask_rle_preview: null, mask_hash: null, mask_tiny: null };
 
     let judge;
     let judgeUsage = { inputTokens: 0, outputTokens: 0 };

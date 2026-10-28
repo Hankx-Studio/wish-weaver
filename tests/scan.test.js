@@ -96,6 +96,8 @@ describe("POST /api/scan", () => {
     assert.deepEqual(body.boxes[0], { x1: 10, y1: 20, x2: 60, y2: 80, w: 200, h: 200 });
     assert.ok(body.mask_rle_preview.startsWith("!!!!!"));
     assert.match(body.mask_hash, /^[0-9a-f]{8}$/);
+    assert.deepEqual([body.mask_tiny.w, body.mask_tiny.h], [4, 4]);
+    assert.ok(typeof body.mask_tiny.b64 === "string" && body.mask_tiny.b64.length > 0);
     assert.equal(body.spirit_line, GOOD_JUDGE.spirit_line);
     assert.equal(body.xp_awarded, 20);
     assert.equal(body.usage.images_processed, 1);
@@ -216,11 +218,42 @@ describe("samMask unit", () => {
     assert.deepEqual(Array.from(got), [1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1]);
   });
 
+  it("tiny mask round-trips through the server encoder", async () => {
+    const { encodeTinyMask } = await import("../server/routes/scan.js");
+    const { tinyToRaster } = await import("../public/js/maskCut.js");
+    const src = [1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1];
+    const tiny = encodeTinyMask(new Uint8Array(src), 4, 4);
+    assert.deepEqual(Array.from(tinyToRaster(tiny)), src);
+  });
+
   it("clamps boxes to the frame and hashes payloads stably", () => {
     const box = clampBox({ x1: -5, y1: 10, x2: 999, y2: 999, w: 200, h: 100 });
     assert.deepEqual([box.x1, box.y1, box.x2, box.y2], [0, 10, 200, 100]);
     assert.equal(maskHash("abc"), maskHash("abc"));
     assert.match(maskHash("abc"), /^[0-9a-f]{8}$/);
+  });
+
+  it("analyzes wire text and plans pixel crops", async () => {
+    const { analyzeSegmentation, cutPlanFor } = await import("../public/js/maskCut.js");
+    const seg = analyzeSegmentation(WIRE_MASK);
+    assert.ok(seg && seg.raster && seg.raster.length === 16);
+    assert.equal(analyzeSegmentation("nope"), null);
+    const plan = cutPlanFor({ x1: 10, y1: 20, x2: 60, y2: 80, w: 200, h: 200 }, 200, 200, 400, 400);
+    assert.deepEqual(plan, { sx: 20, sy: 40, sw: 100, sh: 120 });
+  });
+
+  it("picks the dominant element and builds treasure records", async () => {
+    const { dominantElement } = await import("../public/js/views/scan.js");
+    const { buildTreasure } = await import("../public/js/treasureStore.js");
+    assert.equal(dominantElement({ crystals: { light: 1, water: 3 } }), "water");
+    assert.equal(dominantElement({ crystals: {} }), "ember");
+    const t = buildTreasure({
+      questId: "q-1", title: "找杯子", cutoutDataUrl: "data:image/png;base64,xx",
+      maskHash: "deadbeef", spiritLine: "暖暖的", source: "meta_live",
+    });
+    assert.ok(t.id.startsWith("q-1:deadbeef:"));
+    assert.equal(t.source, "meta_live");
+    assert.ok(t.createdAt);
   });
 
   it("skips malformed records without throwing", () => {
