@@ -1,11 +1,13 @@
 import { STORAGE_KEY, MAX_WISH_LEN, EFFECT_BY_ELEMENT } from './config.js';
 import { loadState, saveState, awardWish, addCrystal, addWish, todayKey, stageFor } from './state.js';
-import { sendWish, friendlyMessage, getHealth } from './api.js';
+import { sendWish, friendlyMessage, getHealth, ApiError } from './api.js';
 import { summonBurst, typewriter, onThresholdReached, reducedMotion } from './effects.js';
 import { renderHome } from './views/home.js';
 import { renderRituals } from './views/rituals.js';
 import { renderRitual } from './views/ritual.js';
 import { renderResult } from './views/result.js';
+import { guideOverlay, guideSeen, markGuideDone } from './views/guide.js';
+import { startRecording, blobToWav24k, sendVoice, applyTranscriptToBox, VOICE_MAX_SEC } from './voice.js';
 import { renderGrowth } from './views/growth.js';
 import { renderEvolve } from './views/evolve.js';
 import { evolveToStage, playTransition, evolveErrorMessage } from './evolveFlow.js';
@@ -23,6 +25,8 @@ let ritualId = 'meal';
 let lastReading = null;
 let lastGained = 0;
 let thresholdNote = '';
+let guideStep = null;
+let recording = null;
 let evolveCtx = { status: 'idle', nextStage: 1, canEvolve: false };
 const STAGE_GATE = [0, 30, 90, 180];
 
@@ -68,6 +72,10 @@ function header() {
 }
 
 function setRoute(r) {
+  if (recording && r !== 'ritual') {
+    recording.stop().catch(() => {});
+    recording = null;
+  }
   if (r === 'evolve' && route !== 'evolve') enterEvolve();
   route = r;
   render();
@@ -100,6 +108,7 @@ function render() {
     app.innerHTML = `<section class="frame"><div class="heading"><h1 class="title">設計預覽 · fairy</h1></div>
       <img class="fairy-art" src="assets/fairy.webp" alt="設計預覽"></section>`;
   }
+  maybeGuide();
   wireAmbient();
 }
 
@@ -133,8 +142,58 @@ function doSummon() {
 function setLoading(on) {
   const slot = document.getElementById('wishError');
   if (slot && on) slot.innerHTML = '<p class="listening">精靈聆聽中…</p>';
-  app.querySelectorAll('[data-action="send"],[data-action="quiet"]')
+  app.querySelectorAll('[data-action="send"],[data-action="quiet"],[data-action="voice"]')
     .forEach((b) => { b.disabled = on; });
+}
+
+function voiceStatus(msg) {
+  const el = document.getElementById('voiceStatus');
+  if (el) el.textContent = msg;
+}
+
+function voiceFail(err) {
+  const kind = err?.name === 'AbortError' ? new ApiError('timeout', 'timeout') : err;
+  voiceStatus(friendlyMessage(kind) + '也可以直接打字。');
+  const btn = document.getElementById('voiceBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '用說的'; }
+}
+
+async function toggleVoice() {
+  const btn = document.getElementById('voiceBtn');
+  const ta = document.getElementById('spell');
+  if (!btn || !ta || btn.disabled) return;
+  if (recording) {
+    btn.disabled = true;
+    voiceStatus('轉成文字中…');
+    try {
+      const blob = await recording.stop();
+      recording = null;
+      const wav = await blobToWav24k(blob);
+      const out = await sendVoice(wav);
+      const text = (out.transcript || '').trim();
+      if (!text) {
+        voiceStatus('沒聽清楚，再說一次好嗎？');
+      } else {
+        applyTranscriptToBox(ta, document.getElementById('count'), text);
+        voiceStatus('已把你說的話放進心意框，確認後再送出。');
+      }
+    } catch (e) {
+      recording = null;
+      voiceFail(e);
+      return;
+    }
+    btn.disabled = false;
+    btn.textContent = '用說的';
+    return;
+  }
+  try {
+    recording = await startRecording({ maxSec: VOICE_MAX_SEC });
+  } catch {
+    voiceStatus('需要麥克風權限才能用說的，也可以直接打字。');
+    return;
+  }
+  btn.textContent = `錄音中…（點一下結束，最長 ${VOICE_MAX_SEC} 秒）`;
+  voiceStatus('在聽了，說完點一下按鈕結束。');
 }
 
 async function submitWish(quiet) {
@@ -197,6 +256,10 @@ document.addEventListener('click', async (e) => {
   if (a === 'summon') doSummon();
   else if (a === 'send') submitWish(false);
   else if (a === 'quiet') submitWish(true);
+  else if (a === 'voice') toggleVoice();
+  else if (a === 'guide-next') { guideStep = Math.min(2, (guideStep ?? 0) + 1); render(); }
+  else if (a === 'guide-back') { guideStep = Math.max(0, (guideStep ?? 0) - 1); render(); }
+  else if (a === 'guide-done') { markGuideDone(localStorage); guideStep = null; render(); }
   else if (a === 'retry') setRoute('ritual');
   else if (a === 'evolve-1' || a === 'evolve-2' || a === 'evolve-3') {
     const toStage = Number(a.split('-')[1]);
@@ -227,6 +290,12 @@ document.addEventListener('click', async (e) => {
     setRoute('home');
   }
 });
+
+function maybeGuide() {
+  if (route !== 'home' || guideSeen(localStorage)) return;
+  if (guideStep === null) guideStep = 0;
+  app.insertAdjacentHTML('beforeend', guideOverlay(guideStep));
+}
 
 if (FAIRY_PREVIEW) route = 'fairy-preview';
 render();

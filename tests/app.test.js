@@ -21,12 +21,11 @@ afterEach(async () => {
 });
 
 describe("wired routes and static", () => {
-  it("transcribe still returns 501 until M5", async () => {
+  it("transcribe validates input (empty multipart is a 400)", async () => {
     const res = await app.request("/api/transcribe", { method: "POST" });
-    assert.equal(res.status, 501);
+    assert.equal(res.status, 400);
     const body = await res.json();
-    assert.equal(body.source, "fallback_fixture");
-    assert.equal(body.error, "not_implemented");
+    assert.equal(body.error, "invalid_request");
   });
 
   it("evolve and scan validate input before touching models", async () => {

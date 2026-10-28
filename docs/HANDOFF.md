@@ -1,5 +1,46 @@
 # 交接紀錄（最新在最上面）
 
+## M5 語音、打磨、健壯性 — 2026-10-28 10:57（台北） — 狀態：done（待人類驗收＋選平台）
+- 完成：/api/transcribe 真實作（LOCAL zod、WAV 檢核 mono16/16-24kHz/≤30s/≤2MB、
+  budget＋transcribeLimiter＋usage.jsonl、失敗回 200 固定 reason、空稿回
+  empty_transcript；index.js 掛真 handler＋transcribeLimiter）；心意頁語音鈕
+  （MediaRecorder→前端轉 24kHz mono WAV→填框待確認、不支援隱藏、錄音中切頁停軌；
+  空稿/拒絕/逾時皆友善中文）；3 步可略過新手引導（一次性 localStorage）；
+  M5 拋光 CSS（按鈕回饋、過場、loading/empty/error、focus 可見、reduced-motion）；
+  scripts/load-test.mjs（20 併發 mock、全過）＋usage-report.mjs（全真實數字）＋
+  e2e-smoke.mjs（空庫→stage1→1 掃描 8 步全過）＋voice-probe.mjs；
+  usage_summary.md（總 spend ≈ $0.1734，全來源標註）；render.yaml＋fly.toml
+  雙平台備好（未部署）；playtest_template.md＋自玩筆記。
+- 改動檔案：server/routes/transcribe.js（重寫）、server/index.js、
+  tests/app.test.js（501→400 斷言）、tests/transcribe.test.js（新增 5 測）、
+  public/js/voice.js（新增）、public/js/views/guide.js（新增）、
+  public/js/views/ritual.js、public/js/main.js、public/style.css（M5 段）、
+  scripts/load-test.mjs、scripts/usage-report.mjs、scripts/e2e-smoke.mjs、
+  scripts/voice-probe.mjs、docs/evidence/usage_summary.md、docs/evidence/m5/
+  （voice_probe.json、e2e.log、load-test.log/.md、deploy_notes.md、
+  playtest_template.md）、render.yaml、fly.toml、docs/HANDOFF.md。
+- 測試：`npm test --cache /tmp/npm-cache-m5w` 107/107 pass（原 102＋transcribe 5）；
+  load-test 8 項全 PASS（20 併發 200/model 零呼叫於預算零）；e2e 8 步 OK；
+  live voice plumbing 200 meta_live＋empty_transcript（2s、$0.0001、1717ms）。
+- 未測（HUMAN-NEEDED，人類驗收清單）：①真實中文語音轉錄品質（sandbox 擋 `say`
+  音訊合成：afinfo 證實 0 bytes/0.000s，見 voice_probe 旁證據說明；探測改走
+  ffmpeg 正弦波驗端點）；②真機瀏覽器（錄音/轉檔/IndexedDB/動畫）＋截圖
+  （M2/M3/M4 遞延同此）；③5 位試玩者（模板已備）；④平台選擇＋真部署＋上線驗；
+  ⑤`fly config validate`（沙盒無 fly CLI，只做結構檢查）、render.yaml 完整匯入驗證；
+  ⑥手機 iOS Safari/Android Chrome 實玩一輪。
+- 阻礙：①sandbox 擋 `say` 音訊（有列出中文音色、寫檔皆 0 位元組）→真實語音品質
+  留待人類；②sandbox 禁 listen()/背景程序/Chrome headless（沿用 M2 模式：
+  in-process app.request＋mock）；③本機無 pyyaml/fly CLI（deploy configs 只結構檢查）。
+- Meta 用量：M5 新增 live 1 次（voice tone 2s ≈ $0.0001；見 m5/voice_probe.json）。
+  全專案實測總 spend ≈ $0.1734（« $3；明細見 usage_summary.md）。
+- 決策：①前端轉 WAV（AudioContext 解碼→24kHz mono 16-bit），伺服器只收 WAV
+  並驗 header——契約寫 m4a/webm 但無 ffmpeg 依賴不新增（AGENTS 硬規則），
+  前端隱藏格式差異；m4a 直送一律 400。②非 WAV/超大/超 30s→400（scan 前例）；
+  限流/預算/模型失敗→200＋reason（quest 前例，玩家端點永不 5xx）。
+  ③e2e.log 保留 brief 原名（被 .gitignore `*.log` 排除），內容同步 load-test.md
+  ＋本段，未遺失。④評審期預算 DAILY=2/TOTAL=20（依據見 deploy_notes.md）。
+- 下一步：人類①選平台部署②真機＋真實中文語音驗③5 位試玩④11/2 功能凍結後只修 bug。
+
 ## M3+M4 整合（Leader） — 2026-10-28 — 狀態：done
 - 完成：feat/m5-polish 從 M3 tip 開出，merge M4（disjoint 無衝突）；套用
   m3/m4_wiring.md：index.js 掛 evolve/quest/scan 真路由（含 limiter＋fetchImpl

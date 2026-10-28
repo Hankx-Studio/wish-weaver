@@ -1,0 +1,37 @@
+# Fly.io config — spirit-quest (single process, no build step).
+# Human picks the platform; DO NOT run `fly launch/deploy` from this branch.
+# Secrets (never in this file): fly secrets set MODEL_API_KEY=...
+app = "spirit-quest"
+primary_region = "sin"
+
+[build]
+  builder = "heroku/buildpacks:20"
+
+[env]
+  PORT = "8787"
+  META_API_BASE = "https://api.meta.ai/v1"
+  MODEL_TEXT = "muse-spark-1.3"
+  MODEL_IMAGE = "muse-image-1.0"
+  MODEL_SEG = "sam-3.1"
+  MODEL_ASR = "muse-voice-transcribe-1.0"
+  DAILY_BUDGET_USD = "2"
+  TOTAL_BUDGET_USD = "20"
+  LIMIT_WISH_PER_HOUR = "30"
+  LIMIT_EVOLVE_PER_DAY = "6"
+  LIMIT_SCAN_PER_DAY = "10"
+  LIMIT_TRANSCRIBE_PER_HOUR = "30"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/api/health"
+    protocol = "http"

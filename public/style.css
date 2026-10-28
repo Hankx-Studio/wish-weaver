@@ -47,3 +47,28 @@
 .ritual-art{height:110px}
 .stage.casting .orb-core{filter:drop-shadow(0 0 28px #fff7b8);transform:scale(1.06)}
 .demo-footer{display:flex;justify-content:center;gap:12px;padding:26px 18px 110px;font-size:11px;color:#6b715e}
+
+/* M5 polish: feedback, transitions, states, guide, voice */
+.btn{transition:transform .12s ease,box-shadow .12s ease,background-color .15s ease}
+.btn:not(:disabled):active{transform:scale(.96)}
+.btn.primary:not(:disabled):hover{box-shadow:0 6px 22px #a67d3344}
+.frame{animation:frameIn .28s ease}
+@keyframes frameIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.voice-status{min-height:1.6em;font-size:12px;color:#4c6a58;margin:6px 0 0}
+.voice-status:empty{display:none}
+.error-slot .form-error{background:#fdf1ec;border:1px solid #d8a08a;border-radius:10px;padding:10px 12px;color:#7c3f2a}
+.listening{display:flex;align-items:center;gap:8px;color:#4c6a58}
+.listening::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid #4c6a58;border-top-color:transparent;animation:spin 0.9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skeleton{background:linear-gradient(90deg,#efe7d3 25%,#fbf5e6 50%,#efe7d3 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:10px;min-height:56px}
+@keyframes shimmer{to{background-position:-200% 0}}
+.empty-note{border:1px dashed #cbb88b;border-radius:10px;padding:14px;color:#6c7164;text-align:center}
+.guide-veil{position:fixed;inset:0;background:#2f3a2ecc;display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:16px}
+.guide-card{background:#fffaf0;border-radius:16px;max-width:520px;width:100%;padding:22px;box-shadow:0 14px 44px #0006}
+.guide-dots{display:flex;gap:6px;margin:10px 0}
+.guide-dot{width:8px;height:8px;border-radius:50%;background:#d8cba6}
+.guide-dot.on{background:#a67d33}
+.toast{transition:opacity .2s ease,transform .2s ease}
+.fairy-button{transition:transform .15s ease}
+.fairy-button:not(:disabled):active{transform:scale(.93)}
+@media (prefers-reduced-motion:reduce){.frame{animation:none}.listening::before{animation-duration:2s}.skeleton{animation:none}.btn{transition:none}}

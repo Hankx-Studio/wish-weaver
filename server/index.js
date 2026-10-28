@@ -10,7 +10,7 @@ import { createWishHandler } from "./routes/wish.js";
 import { createEvolveHandler } from "./routes/evolve.js";
 import { createQuestHandler } from "./routes/quest.js";
 import { createScanHandler } from "./routes/scan.js";
-import { postTranscribeHandler } from "./routes/transcribe.js";
+import { createTranscribeHandler } from "./routes/transcribe.js";
 
 export function createApp({ config, budget, fetchImpl = fetch } = {}) {
   const app = new Hono();
@@ -18,13 +18,14 @@ export function createApp({ config, budget, fetchImpl = fetch } = {}) {
   const evolveLimiter = createRateLimiter({ windowMs: 86400_000, max: config.limits.evolvePerDay });
   const questLimiter = createRateLimiter({ windowMs: 3600_000, max: 30 });
   const scanLimiter = createRateLimiter({ windowMs: 86400_000, max: config.limits.scanPerDay });
+  const transcribeLimiter = createRateLimiter({ windowMs: 3600_000, max: config.limits.transcribePerHour });
 
   app.get("/api/health", createHealthHandler({ config, budget }));
   app.post("/api/wish", createWishHandler({ config, budget, limiter: wishLimiter, fetchImpl }));
   app.post("/api/evolve", createEvolveHandler({ config, budget, limiter: evolveLimiter, fetchImpl }));
   app.post("/api/quest", createQuestHandler({ config, budget, limiter: questLimiter, fetchImpl }));
   app.post("/api/scan", createScanHandler({ config, budget, limiter: scanLimiter, fetchImpl }));
-  app.post("/api/transcribe", postTranscribeHandler);
+  app.post("/api/transcribe", createTranscribeHandler({ config, budget, limiter: transcribeLimiter, fetchImpl }));
 
   app.get("/", serveStatic({ path: "./public/index.html" }));
   app.use("/*", serveStatic({ root: "./public" }));
