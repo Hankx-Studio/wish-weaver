@@ -94,6 +94,7 @@ describe("POST /api/scan", () => {
     assert.equal(body.found, true);
     assert.equal(body.boxes.length, 1);
     assert.deepEqual(body.boxes[0], { x1: 10, y1: 20, x2: 60, y2: 80, w: 200, h: 200 });
+    assert.deepEqual(body.best_box, body.boxes[0]);
     assert.ok(body.mask_rle_preview.startsWith("!!!!!"));
     assert.match(body.mask_hash, /^[0-9a-f]{8}$/);
     assert.deepEqual([body.mask_tiny.w, body.mask_tiny.h], [4, 4]);

@@ -85,6 +85,34 @@ function fixtureQuest({ element, lang, kindness }, day) {
   };
 }
 
+async function runQuestModel({ config, fetchImpl, element, lang, kindness, day }) {
+  const payload = {
+    model: config.models.text,
+    instructions: buildQuestPrompt({ element, lang, kindness }),
+    input: [{ role: "user", content: [{ type: "input_text", text: `element: ${element}` }] }],
+    text: { format: { type: "json_schema", name: "daily_quest", schema: QUEST_MODEL_SCHEMA, strict: true } },
+    reasoning: { effort: "low" },
+  };
+  const call = () => callSpark({
+    apiBase: config.apiBase, apiKey: config.apiKey, payload, fetchImpl, prices: config.prices,
+  });
+  try {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const { data, usage: u, costUsd, latencyMs } = await call();
+      try {
+        const raw = extractOutputText(data).replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
+        const quest = toQuest(ModelQuestSchema.parse(JSON.parse(raw)), day);
+        if (quest) return { quest, usage: { ...u, costUsd, latencyMs } };
+      } catch {
+        // Bad JSON/shape: the loop retries once, then the caller falls back.
+      }
+    }
+  } catch {
+    // Transport failure after the client-side retry: caller falls back.
+  }
+  return null;
+}
+
 export function createQuestHandler({ config, budget, fetchImpl = fetch, limiter = null }) {
   return async (c) => {
     let body = {};
@@ -99,68 +127,28 @@ export function createQuestHandler({ config, budget, fetchImpl = fetch, limiter 
     }
     const { element = "ember", lang = "zh", kindness = false } = parsed.data;
     const day = todayKey();
+    const fixture = (reason) => c.json({ ...fixtureQuest({ element, lang, kindness }, day), reason }, 200);
 
     if (limiter) {
       const rl = limiter.check(`quest:${clientIp(c)}`);
       if (!rl.allowed) {
-        const res = c.json({ ...fixtureQuest({ element, lang, kindness }, day), reason: "rate_limited" }, 200);
+        const res = fixture("rate_limited");
         res.headers.set("Retry-After", String(rl.retryAfterSec));
         return res;
       }
     }
-    if (!budget.canSpend(QUEST_ESTIMATE_USD)) {
-      return c.json({ ...fixtureQuest({ element, lang, kindness }, day), reason: "budget_exhausted" }, 200);
-    }
-
-    const payload = {
-      model: config.models.text,
-      instructions: buildQuestPrompt({ element, lang, kindness }),
-      input: [{ role: "user", content: [{ type: "input_text", text: `element: ${element}` }] }],
-      text: { format: { type: "json_schema", name: "daily_quest", schema: QUEST_MODEL_SCHEMA, strict: true } },
-      reasoning: { effort: "low" },
-    };
-    const call = () => callSpark({
-      apiBase: config.apiBase,
-      apiKey: config.apiKey,
-      payload,
-      fetchImpl,
-      prices: config.prices,
-    });
-    let quest = null;
-    let usage = null;
-    try {
-      for (let attempt = 0; attempt < 2 && !quest; attempt += 1) {
-        const { data, usage: u, costUsd, latencyMs } = await call();
-        usage = { ...u, costUsd, latencyMs };
-        try {
-          const raw = extractOutputText(data).replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "");
-          const model = ModelQuestSchema.parse(JSON.parse(raw));
-          quest = toQuest(model, day);
-        } catch {
-          quest = null;
-        }
-      }
-    } catch {
-      quest = null;
-    }
-    if (!quest) {
-      return c.json({ ...fixtureQuest({ element, lang, kindness }, day), reason: "model_unavailable" }, 200);
-    }
+    if (!budget.canSpend(QUEST_ESTIMATE_USD)) return fixture("budget_exhausted");
+    const won = await runQuestModel({ config, fetchImpl, element, lang, kindness, day });
+    if (!won) return fixture("model_unavailable");
     try {
       await budget.record({
-        ts: new Date().toISOString(),
-        endpoint: "quest",
-        model: config.models.text,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        images: 0,
-        costUsd: usage.costUsd,
-        latencyMs: usage.latencyMs ?? 0,
-        source: "meta_live",
+        ts: new Date().toISOString(), endpoint: "quest", model: config.models.text,
+        inputTokens: won.usage.inputTokens, outputTokens: won.usage.outputTokens,
+        images: 0, costUsd: won.usage.costUsd, latencyMs: won.usage.latencyMs ?? 0, source: "meta_live",
       });
     } catch {
       // Usage logging must never break the player's response.
     }
-    return c.json({ source: "meta_live", quest }, 200);
+    return c.json({ source: "meta_live", quest: won.quest }, 200);
   };
 }

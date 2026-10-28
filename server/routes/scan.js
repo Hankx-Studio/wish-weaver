@@ -81,6 +81,7 @@ function fallbackScan(reason, questId, opts = {}) {
     found: false,
     quest_id: questId,
     boxes: [],
+    best_box: null,
     mask_rle_preview: null,
     mask_hash: null,
     mask_tiny: null,
@@ -159,29 +160,85 @@ async function logUse(budget, entry) {
   }
 }
 
+async function readScanInput(c) {
+  let form;
+  try {
+    form = await c.req.formData();
+  } catch {
+    return { error: "body must be multipart with a photo field" };
+  }
+  const photo = form.get("photo");
+  const text = ScanTextSchema.safeParse({
+    quest_id: form.get("quest_id"),
+    target_noun_en: form.get("target_noun_en"),
+    quest_title: form.get("quest_title") ?? undefined,
+    lang: form.get("lang") ?? undefined,
+  });
+  const bytes = photo && typeof photo.arrayBuffer === "function" ? new Uint8Array(await photo.arrayBuffer()) : null;
+  if (!bytes || !text.success) return { error: "photo, quest_id and target_noun_en are required" };
+  if (!ALLOWED_MIME.includes(photo.type) || bytes.length > MAX_PHOTO_BYTES || !magicOk(bytes, photo.type)) {
+    return { error: "photo must be JPEG/PNG/WebP and within 2MB" };
+  }
+  const { quest_id, target_noun_en, quest_title = target_noun_en, lang = "zh" } = text.data;
+  return { photo, bytes, quest_id, target_noun_en, quest_title, lang };
+}
+
+async function segmentPhase({ config, budget, fetchImpl, target, dataUrl }) {
+  const sam = await runSam({
+    apiBase: config.apiBase, apiKey: config.apiKey, model: config.models.seg,
+    target, dataUrl, fetchImpl,
+  });
+  const imagesProcessed = sam?.usage?.images_processed ?? 0;
+  const cost = samCost(imagesProcessed, config.prices);
+  await logUse(budget, {
+    ts: new Date().toISOString(), endpoint: "scan", model: config.models.seg,
+    inputTokens: 0, outputTokens: 0, images: imagesProcessed,
+    costUsd: cost, latencyMs: 0, source: "meta_live",
+  });
+  const { records } = parseSamOutput(extractOutputText(sam));
+  const best = pickBest(records);
+  const boxes = records.map((r) => clampBox(r.box)).slice(0, 8);
+  const tiny = best?.raster ? encodeTinyMask(best.raster, best.mask.w, best.mask.h) : null;
+  const seg = best ? {
+    boxes, best_box: clampBox(best.box), mask_rle_preview: maskPreview(best.mask.payload),
+    mask_hash: maskHash(best.mask.payload), mask_tiny: tiny,
+  } : { boxes, best_box: null, mask_rle_preview: null, mask_hash: null, mask_tiny: null };
+  return { seg, imagesProcessed, cost };
+}
+
+async function judgePhase({ config, budget, fetchImpl, dataUrl, questTitle, target, lang }) {
+  const r = await runJudge({ config, fetchImpl, dataUrl, questTitle, target, lang });
+  await logUse(budget, {
+    ts: new Date().toISOString(), endpoint: "scan", model: config.models.text,
+    inputTokens: r.usage.inputTokens, outputTokens: r.usage.outputTokens,
+    images: 0, costUsd: r.cost, latencyMs: 0, source: "meta_live",
+  });
+  return r;
+}
+
+function verdictJson({ quest_id, seg, judge, imagesProcessed, judgeUsage, totalCost }) {
+  const usage = {
+    images_processed: imagesProcessed, input_tokens: judgeUsage.inputTokens,
+    output_tokens: judgeUsage.outputTokens, cost_usd: totalCost,
+  };
+  if (judge.human) {
+    return {
+      source: "meta_live", ok: true, matched: false, found: false,
+      quest_id, ...seg, spirit_line: FACE_REFUSAL_LINE, human: true, usage, xp_awarded: 0,
+    };
+  }
+  const line = Array.from(judge.spirit_line).length <= 40 ? judge.spirit_line : judge.spirit_line.slice(0, 40);
+  return {
+    source: "meta_live", ok: true, matched: judge.matched, found: judge.matched,
+    quest_id, ...seg, spirit_line: line, usage, xp_awarded: judge.matched ? XP_PER_QUEST : 0,
+  };
+}
+
 export function createScanHandler({ config, budget, limiter = null, fetchImpl = fetch }) {
   return async (c) => {
-    let form;
-    try {
-      form = await c.req.formData();
-    } catch {
-      return c.json({ error: "invalid_request", message: "body must be multipart with a photo field" }, 400);
-    }
-    const photo = form.get("photo");
-    const text = ScanTextSchema.safeParse({
-      quest_id: form.get("quest_id"),
-      target_noun_en: form.get("target_noun_en"),
-      quest_title: form.get("quest_title") ?? undefined,
-      lang: form.get("lang") ?? undefined,
-    });
-    const bytes = photo && typeof photo.arrayBuffer === "function" ? new Uint8Array(await photo.arrayBuffer()) : null;
-    if (!bytes || !text.success) {
-      return c.json({ error: "invalid_request", message: "photo, quest_id and target_noun_en are required" }, 400);
-    }
-    const { quest_id, target_noun_en, quest_title = target_noun_en, lang = "zh" } = text.data;
-    if (!ALLOWED_MIME.includes(photo.type) || bytes.length > MAX_PHOTO_BYTES || !magicOk(bytes, photo.type)) {
-      return c.json({ error: "invalid_request", message: "photo must be JPEG/PNG/WebP and within 2MB" }, 400);
-    }
+    const input = await readScanInput(c);
+    if (input.error) return c.json({ error: "invalid_request", message: input.error }, 400);
+    const { quest_id, target_noun_en, quest_title, lang, photo, bytes } = input;
     if (limiter) {
       const rl = limiter.check(`scan:${clientIp(c)}`);
       if (!rl.allowed) {
@@ -193,74 +250,22 @@ export function createScanHandler({ config, budget, limiter = null, fetchImpl = 
     if (!budget.canSpend(SCAN_ESTIMATE_USD)) {
       return c.json(fallbackScan("budget_exhausted", quest_id), 200);
     }
-
     const dataUrl = `data:${photo.type};base64,${Buffer.from(bytes).toString("base64")}`;
-    let samText = "";
-    let imagesProcessed = 0;
+    let segPhase;
     try {
-      const sam = await runSam({
-        apiBase: config.apiBase,
-        apiKey: config.apiKey,
-        model: config.models.seg,
-        target: target_noun_en,
-        dataUrl,
-        fetchImpl,
-      });
-      imagesProcessed = sam?.usage?.images_processed ?? 0;
-      samText = extractOutputText(sam);
+      segPhase = await segmentPhase({ config, budget, fetchImpl, target: target_noun_en, dataUrl });
     } catch {
       return c.json(fallbackScan("model_unavailable", quest_id), 200);
     }
-    const samCostUsd = samCost(imagesProcessed, config.prices);
-    await logUse(budget, {
-      ts: new Date().toISOString(), endpoint: "scan", model: config.models.seg,
-      inputTokens: 0, outputTokens: 0, images: imagesProcessed,
-      costUsd: samCostUsd, latencyMs: 0, source: "meta_live",
-    });
-
-    const { records } = parseSamOutput(samText);
-    const best = pickBest(records);
-    const boxes = records.map((r) => clampBox(r.box)).slice(0, 8);
-    const tiny = best && best.raster ? encodeTinyMask(best.raster, best.mask.w, best.mask.h) : null;
-    const seg = best ? {
-      boxes,
-      mask_rle_preview: maskPreview(best.mask.payload),
-      mask_hash: maskHash(best.mask.payload),
-      mask_tiny: tiny,
-    } : { boxes, mask_rle_preview: null, mask_hash: null, mask_tiny: null };
-
-    let judge;
-    let judgeUsage = { inputTokens: 0, outputTokens: 0 };
-    let judgeCost = 0;
+    let judged;
     try {
-      const r = await runJudge({ config, fetchImpl, dataUrl, questTitle: quest_title, target: target_noun_en, lang });
-      judge = r.judge;
-      judgeUsage = r.usage;
-      judgeCost = r.cost;
+      judged = await judgePhase({ config, budget, fetchImpl, dataUrl, questTitle: quest_title, target: target_noun_en, lang });
     } catch {
-      return c.json({ ...fallbackScan("model_unavailable", quest_id), ...seg }, 200);
+      return c.json({ ...fallbackScan("model_unavailable", quest_id), ...segPhase.seg }, 200);
     }
-    await logUse(budget, {
-      ts: new Date().toISOString(), endpoint: "scan", model: config.models.text,
-      inputTokens: judgeUsage.inputTokens, outputTokens: judgeUsage.outputTokens,
-      images: 0, costUsd: judgeCost, latencyMs: 0, source: "meta_live",
-    });
-
-    const line = Array.from(judge.spirit_line).length <= 40 ? judge.spirit_line : judge.spirit_line.slice(0, 40);
-    if (judge.human) {
-      return c.json({
-        source: "meta_live", ok: true, matched: false, found: false,
-        quest_id, ...seg, spirit_line: FACE_REFUSAL_LINE, human: true,
-        usage: { images_processed: imagesProcessed, input_tokens: judgeUsage.inputTokens, output_tokens: judgeUsage.outputTokens, cost_usd: samCostUsd + judgeCost },
-        xp_awarded: 0,
-      }, 200);
-    }
-    const matched = judge.matched;
-    return c.json({
-      source: "meta_live", ok: true, matched, found: matched,
-      quest_id, ...seg, spirit_line: line,
-      usage: { images_processed: imagesProcessed, input_tokens: judgeUsage.inputTokens, output_tokens: judgeUsage.outputTokens, cost_usd: samCostUsd + judgeCost },
-      xp_awarded: matched ? XP_PER_QUEST : 0,
-    }, 200);
+    return c.json(verdictJson({
+      quest_id, seg: segPhase.seg, judge: judged.judge, imagesProcessed: segPhase.imagesProcessed,
+      judgeUsage: judged.usage, totalCost: segPhase.cost + judged.cost,
+    }), 200);
   };
 }

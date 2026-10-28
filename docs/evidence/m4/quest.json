@@ -1,0 +1,16 @@
+{
+  "status": 200,
+  "body": {
+    "source": "meta_live",
+    "quest": {
+      "id": "q-2026-10-28-ember-normal",
+      "quest_id": "q-2026-10-28-ember-normal",
+      "title": "暖暖的馬克杯",
+      "text": "暖暖的馬克杯",
+      "hint": "看看餐桌或廚房裡，有沒有一個暖呼呼的水杯在等你。",
+      "target_noun_en": "warm mug",
+      "element": "ember",
+      "kind": "normal"
+    }
+  }
+}

@@ -230,7 +230,7 @@ function wireScanButtons(api) {
 
 async function cutTreasure(blob, out) {
   const img = await blobToImage(blob);
-  const box = out.boxes[0];
+  const box = out.best_box || out.boxes[0];
   let cv = null;
   if (out.mask_tiny) {
     const raster = tinyToRaster(out.mask_tiny);
