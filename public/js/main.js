@@ -7,6 +7,11 @@ import { renderRituals } from './views/rituals.js';
 import { renderRitual } from './views/ritual.js';
 import { renderResult } from './views/result.js';
 import { renderGrowth } from './views/growth.js';
+import { renderEvolve } from './views/evolve.js';
+import { evolveToStage, playTransition, evolveErrorMessage } from './evolveFlow.js';
+import { getPlayerId, stageKey, getStageImage } from './imageStore.js';
+import { mountScan } from './views/scan.js';
+import { mountCabinet } from './views/cabinet.js';
 
 const query = new URLSearchParams(location.search);
 const DEMO = query.has('demo');
@@ -18,6 +23,22 @@ let ritualId = 'meal';
 let lastReading = null;
 let lastGained = 0;
 let thresholdNote = '';
+let evolveCtx = { status: 'idle', nextStage: 1, canEvolve: false };
+const STAGE_GATE = [0, 30, 90, 180];
+
+function enterEvolve() {
+  const target = Math.min(3, Math.max(1, stageFor(state.xp)));
+  evolveCtx = {
+    status: 'idle', error: null, nextStage: target,
+    canEvolve: state.xp >= STAGE_GATE[target], current: null, previous: null,
+  };
+  getStageImage(stageKey(getPlayerId(), target)).then((img) => {
+    if (img?.b64 && route === 'evolve') {
+      evolveCtx = { ...evolveCtx, current: { stage: target, b64: img.b64, story: img.story }, story: img.story };
+      renderEvolve(app, ctx());
+    }
+  }).catch(() => {});
+}
 
 const app = document.getElementById('app');
 const toastEl = document.getElementById('toast');
@@ -40,20 +61,21 @@ function navButton(id, label) {
 function header() {
   document.getElementById('topbar').innerHTML =
     `<button class="brand" data-nav="home" aria-label="回到精靈花庭"><span><strong>精靈之間</strong><small>FAIRY COMPANION</small></span></button>
-    <nav class="top-nav" aria-label="主要導覽">${navButton('home', '精靈花庭')}${navButton('rituals', '日常儀式')}${navButton('growth', '成長之書')}</nav>
+    <nav class="top-nav" aria-label="主要導覽">${navButton('home', '精靈花庭')}${navButton('rituals', '日常儀式')}${navButton('growth', '成長之書')}${navButton('scan', '今日任務')}${navButton('cabinet', '寶物櫃')}</nav>
     <div class="header-points">${DEMO ? '<span class="demo-badge">展示模式</span>' : ''}<span>${state.xp} XP</span></div>`;
   document.getElementById('mobileNav').innerHTML =
-    navButton('home', '精靈花庭') + navButton('rituals', '日常儀式') + navButton('growth', '成長之書');
+    navButton('home', '精靈花庭') + navButton('rituals', '日常儀式') + navButton('growth', '成長之書') + navButton('scan', '今日任務') + navButton('cabinet', '寶物櫃');
 }
 
 function setRoute(r) {
+  if (r === 'evolve' && route !== 'evolve') enterEvolve();
   route = r;
   render();
   scrollTo({ top: 0 });
 }
 
 function ctx() {
-  return { state, ritualId, reading: lastReading, gained: lastGained, thresholdNote };
+  return { state, ritualId, reading: lastReading, gained: lastGained, thresholdNote, evolve: evolveCtx };
 }
 
 function render() {
@@ -70,7 +92,10 @@ function render() {
       summonBurst(document.getElementById('burst'),
         lastReading.effect || EFFECT_BY_ELEMENT[lastReading.element] || 'sparkle');
     }
-  } else if (route === 'growth') renderGrowth(app, ctx());
+  } else if (route === 'evolve') renderEvolve(app, ctx());
+  else if (route === 'scan') mountScan(app, { state, demo: DEMO, persist, toast, go: setRoute });
+  else if (route === 'cabinet') mountCabinet(app);
+  else if (route === 'growth') renderGrowth(app, ctx());
   else if (route === 'fairy-preview' && FAIRY_PREVIEW) {
     app.innerHTML = `<section class="frame"><div class="heading"><h1 class="title">設計預覽 · fairy</h1></div>
       <img class="fairy-art" src="assets/fairy.webp" alt="設計預覽"></section>`;
@@ -154,7 +179,7 @@ async function refreshFooter() {
   el.textContent = h ? 'AI 回應由 Meta Muse Spark 即時生成' : '目前連不上伺服器，稍後再試';
 }
 
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
   const nav = e.target.closest('[data-nav]');
   if (nav) {
     setRoute(nav.dataset.nav);
@@ -173,6 +198,27 @@ document.addEventListener('click', (e) => {
   else if (a === 'send') submitWish(false);
   else if (a === 'quiet') submitWish(true);
   else if (a === 'retry') setRoute('ritual');
+  else if (a === 'evolve-1' || a === 'evolve-2' || a === 'evolve-3') {
+    const toStage = Number(a.split('-')[1]);
+    evolveCtx.status = 'evolving'; evolveCtx.error = null; render();
+    await playTransition(document.getElementById('evolveStage'));
+    try {
+      const { result, note } = await evolveToStage(state, toStage);
+      if (result.ok) {
+        evolveCtx = {
+          status: 'done', source: result.source, family: result.family,
+          current: { stage: toStage, b64: result.image_b64, story: result.story },
+          previous: evolveCtx.current?.b64 || null, story: result.story, note,
+          nextStage: Math.min(3, toStage + 1), canEvolve: state.xp >= [0, 90, 180][toStage],
+        };
+      } else {
+        evolveCtx = { ...evolveCtx, status: 'error', error: '演化失敗，原圖與 XP 保留，再試一次好嗎？' };
+      }
+    } catch (e2) {
+      evolveCtx = { ...evolveCtx, status: 'error', error: evolveErrorMessage(e2) };
+    }
+    setRoute('evolve');
+  }
   else if (a === 'clear') {
     localStorage.removeItem(STORAGE_KEY);
     state = loadState(localStorage);

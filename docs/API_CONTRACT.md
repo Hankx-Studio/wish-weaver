@@ -1,4 +1,5 @@
 # API_CONTRACT v1.0（凍結，2026-10-28，M0）
+修訂 v1.1（2026-10-28，Leader 裁定）：quest/scan 節配合 M4 實作改寫（Spark 出題＋模板回退、照片 ≤2MB/400、mask_tiny/best_box 新欄位）。理由見 HANDOFF「M3+M4 整合」。
 
 後面所有任務照這份實作。`source` 欄位永不說謊：
 `meta_live` 僅限真實模型回應通過 zod 驗證者，餘者一律 `fallback_fixture`。
@@ -54,20 +55,27 @@
   story 由 spark（low）依結晶統計＋最近 5 次 traits 寫 2 句，不含玩家原文 [D]。
 - 圖片存玩家瀏覽器 IndexedDB；伺服器不存玩家圖 [D]。
 
-## POST /api/quest
+## POST /api/quest（v1.1 修訂）
 
-- 純伺服器端：依 stage/元素出每日現實任務（不呼叫模型亦可；文案模板在 config）[D]。
-- 回應 200：`{source:"fallback_fixture", quest:{id, text, hint}}`——此端點 source 恆為
-  fixture（無模型背書），完成條件見 /api/scan [D]。
+- 請求：`{element?, lang?:"zh"|"en", kindness?}`，全選填 [D]。
+- Spark 依 dominant element 出題（含 kindness 善意類別），zod＋重試 1 次；
+  模型失敗或預算用盡 → 伺服器模板題（文案在 prompts/quest.js）[D, M4 實測]。
+- 回應 200：`{source, quest:{id, quest_id, title, text, hint, target_noun_en,
+  element, kind}}`；模型背書時 source=meta_live，模板時 fallback_fixture。
+  v1.0「恆為 fixture」假設作廢（被 M4 任務需求取代），完成條件見 /api/scan。
 
 ## POST /api/scan
 
-- 請求：multipart `photo`（≤5MB，伺服器壓至 ≤1024px 後送測，M4 定案）[D]。
+- 請求：multipart `photo`（≤2MB，超過回 400；伺服器驗 MIME 魔數；
+  前端先縮至長邊 ≤1024px JPEG/WebP，M4 定案）[D, M4 驗收]。
 - 模型：`sam-3.1`，`POST /v1/responses`，`{model:"sam-3.1", input:[{text: quest_keyword},
   {input_image}]}` [P]。
 - 回應 200：`{source, found:boolean, boxes:[{x1,y1,x2,y2}], mask_rle_preview:string|null,
   usage:{images_processed, cost_usd}}`；box 像素座標＋畫布 w/h [P]。
   mask 全文不回前端（RLE 可達數 KB），只存遮罩雜湊供去重 [D]。
+  M4 超集（v1.1 新增）：`{ok, matched, quest_id, best_box, mask_hash,
+  mask_tiny:{w,h,b64}, spirit_line, human?, xp_awarded}`；mask_tiny 為 ≤64px
+  下採樣位圖，供前端切圖；人臉照片拒收（固定句，不給 XP）[D, M4 實測]。
 - 成功＋1 寶物、XP＋20（伺服器發）[D]。
 
 ## POST /api/transcribe

@@ -1,5 +1,64 @@
 # 交接紀錄（最新在最上面）
 
+## M3+M4 整合（Leader） — 2026-10-28 — 狀態：done
+- 完成：feat/m5-polish 從 M3 tip 開出，merge M4（disjoint 無衝突）；套用
+  m3/m4_wiring.md：index.js 掛 evolve/quest/scan 真路由（含 limiter＋fetchImpl
+  透傳）、index.html 加 2 css、main.js 加 evolve/scan/cabinet 路由＋寶物櫃 nav
+  ＋evolve-N 動作、growth.js 加 stage 畫廊＋演化入口；app.test.js stub 斷言改
+  寫（transcribe 仍 501、evolve/scan 先驗證、quest 斷網回模板）。
+- 改動檔案：server/index.js、public/index.html、public/js/main.js、
+  public/js/views/growth.js、tests/app.test.js、docs/API_CONTRACT.md（v1.1）、
+  docs/HANDOFF.md（併入 M3/M4）。
+- 測試：`npm test` 102/102 pass（M1 50＋M2 17＋M3 12＋M4 17＋app 更新）。
+- 未測：掛載後整站 `?demo=1` zero→stage3（留 M5 E2E/手動）。
+- 阻礙：無。
+- Meta 用量：整合本身 $0。
+- 決策（契約裁定）：M4 回報契約 quest/scan 節與任務檔衝突（fixture-only／5MB
+  /413 vs Spark 出題／2MB／400／ok-matched-spirit_line）。裁定：任務檔＋
+  GAME_SPEC 意圖勝出，契約修訂為 v1.1（Spark 出題＋模板回退、2MB/400、
+  mask_tiny/best_box 新欄位）；M4 超集回應保留舊欄位，相容 v1.0 讀者。
+- 下一步：M5（語音＋檔案重測 transcribe 真實中文、健壯性、部署人類選平台）。
+
+## M3 演化 — 2026-10-28 — 狀態：done（Leader 已驗收＋接線）
+- 完成：/api/evolve 全鏈（XP 門檻 30/90/180、家族加權抽籤 seed=playerId+stage、
+  stage1 generations／stage2-3 edits＋IDENTITY_KEEP、Spark 2 句故事 ≤80 字、
+  budget＋日限流＋usage.jsonl、失敗回 {ok:false, keep:true}）；前端 imageStore
+  ＋evolveFlow＋views/evolve＋evolve.css；tune grid 9 張（bloom/tide/starlight）。
+- 改動檔案：server/routes/evolve.js、server/evolveFamily.js、
+  server/prompts/styleLock.js、server/prompts/evolveStory.js、
+  public/js/imageStore.js、public/js/evolveFlow.js、public/js/views/evolve.js、
+  public/css/evolve.css、scripts/evolve-tune.mjs、tests/evolve.test.js、
+  docs/evidence/m3/、wiring＋handoff 片段。
+- 測試：分支上 80/80 pass；live trio 同一角色親驗（bloom-s1→s3 臉/髮/姿勢保留）；
+  mock 圖片失敗回 keep:true。
+- 未測：接線後整站 demo、真機 reduced-motion、IndexedDB 跨階段（待 M5）。
+- 阻礙：無。
+- Meta 用量：tune 9×image ≈ US$0.09。
+- 決策：前端先用推薦風格 A 接線；grid/bloom trio 等人類早上確認（見
+  docs/evidence/m3/style_pick.md）。
+- 下一步：Leader 接線（已做）→ M5。
+
+## M4 拍下你的世界 — 2026-10-28 — 狀態：done（Leader 已驗收＋接線）
+- 完成：/api/quest（Spark 出題＋模板回退，id/text/hint 相容契約舊欄位）；
+  /api/scan（MIME 魔數＋≤2MB、SAM 最佳 mask/box＋Spark 判定＋一句台詞、
+  人臉拒收無 XP、圖片不存檔）；server/samMask.js（wire 解析＋雙編碼解碼器，
+  與 @meta-sam/parser 21 向量＋3 真機逐位元一致）；前端 maskCut／
+  treasureStore／scan／cabinet／scan.css。
+- 改動檔案：server/samMask.js、server/prompts/quest.js、
+  server/prompts/scanJudge.js、server/routes/quest.js、server/routes/scan.js、
+  public/js/maskCut.js、public/js/treasureStore.js、public/js/views/scan.js、
+  public/js/views/cabinet.js、public/css/scan.css、tests/quest.test.js、
+  tests/scan.test.js、docs/evidence/m4/、wiring＋handoff 片段。
+- 測試：分支上 87/87 pass；真機 1 quest＋8 scans 全 meta_live
+  （food/flower/bowl matched、人臉拒收；見 evidence/m4/README.md）。
+- 未測：瀏覽器實測（views、IndexedDB、縮圖、動畫；留 M5）；真杯實拍
+  （風格化小杯 SAM 回 0 boxes，證據改用飯碗）。
+- 阻礙／決策：range decoder 短路語意已修＋回歸鎖定；契約衝突已報 Leader
+  裁定（見上）；ffmpeg webp 剪裁需先 format=rgb24。
+- Meta 用量：1 quest＋8 scans＋探測 ≈ US$0.065。
+- 建議：quest 文案引導拍大容器；mask_tiny 寬 64px 可調。
+- 下一步：Leader 接線（已做）→ M5。
+
 ## M2 遊戲主循環（前端） — 2026-10-28 11:00（台北） — 狀態：done
 - 完成：public/app.js（50 行原型）拆成 ES modules：public/js/config.js（GAME_SPEC §4 全部數值）、
   state.js（key `wishweaver.v1`、版本號、損壞重置；純函式可被 node:test import）、api.js（timeout 25s 競速＋友善錯誤＋ApiError kind）、

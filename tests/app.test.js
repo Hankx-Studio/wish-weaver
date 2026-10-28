@@ -20,14 +20,41 @@ afterEach(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-describe("stubs and static", () => {
-  it("later-milestone endpoints return 501 with a source tag", async () => {
-    for (const name of ["evolve", "quest", "scan", "transcribe"]) {
-      const res = await app.request(`/api/${name}`, { method: "POST" });
-      assert.equal(res.status, 501);
+describe("wired routes and static", () => {
+  it("transcribe still returns 501 until M5", async () => {
+    const res = await app.request("/api/transcribe", { method: "POST" });
+    assert.equal(res.status, 501);
+    const body = await res.json();
+    assert.equal(body.source, "fallback_fixture");
+    assert.equal(body.error, "not_implemented");
+  });
+
+  it("evolve and scan validate input before touching models", async () => {
+    const json = { "content-type": "application/json" };
+    const evolve = await app.request("/api/evolve", { method: "POST", headers: json, body: JSON.stringify({}) });
+    assert.equal(evolve.status, 400);
+    const scan = await app.request("/api/scan", { method: "POST", headers: json, body: JSON.stringify({}) });
+    assert.equal(scan.status, 400);
+  });
+
+  it("quest falls back to a template quest when the model is unreachable", async () => {
+    const deadDir = await mkdtemp(path.join(tmpdir(), "app-dead-"));
+    try {
+      const config = loadConfig({ MODEL_API_KEY: "test-key", USAGE_FILE: path.join(deadDir, "usage.jsonl") });
+      const deadBudget = createBudget({ dailyCap: 5, totalCap: 100, usageFile: path.join(deadDir, "usage.jsonl") });
+      await deadBudget.load();
+      const deadApp = createApp({
+        config, budget: deadBudget, fetchImpl: () => { throw new Error("no network in test"); },
+      });
+      const res = await deadApp.request("/api/quest", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ element: "ember" }),
+      });
+      assert.equal(res.status, 200);
       const body = await res.json();
       assert.equal(body.source, "fallback_fixture");
-      assert.equal(body.error, "not_implemented");
+      assert.ok(body.quest?.id && body.quest?.text && body.quest?.hint);
+    } finally {
+      await rm(deadDir, { recursive: true, force: true });
     }
   });
 
