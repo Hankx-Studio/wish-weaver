@@ -1,5 +1,22 @@
 # 交接紀錄（最新在最上面）
 
+## M6 提交材料 — 2026-10-28（台北） — 狀態：done（待人類：部署＋錄影＋貼表單）
+- 完成：README 提交版（8 節：問題/玩法/Meta AI×5/架構/安全/成本/本地運行/連結團隊；
+  數字全引 usage_summary，圖片全引用既有，無發明截圖→TBD-human）；docs/DEMO_SCRIPT.md
+  （2:55 分鏡：鉤子15s/遊玩75s/拍照40s/技術30s/願景15s 純方向）；docs/SUBMISSION.md
+  （表單草稿，欄位清單待人類對實際頁面確認）；docs/evidence/m6/checklist.md（逐項證據或
+  TBD-human 負責人）；key-history 掃描（見下）。
+- 改動檔案：README.md、docs/DEMO_SCRIPT.md、docs/SUBMISSION.md、
+  docs/evidence/m6/checklist.md、docs/HANDOFF.md（本段）。零程式碼改動。
+- 測試：`npm test --cache /tmp/npm-cache-m6` 107/107 pass（唯讀確認，未改任何程式）。
+- 未測：demo URL 健康檢查（待部署）、影片長度（待人類錄製）、提交欄位與實際表單一致性。
+- 阻礙：無（TBD-human 三項：部署 URL、影片、表單欄位＋tag v1.0 由人類執行）。
+- Meta 用量：$0（docs only，無模型呼叫）。
+- 決策：遊戲截圖一律 TBD-human，不以美術圖冒充；願景段只講方向不展假資料（GAME_SPEC §8）。
+- 下一步：人類①部署＋health 200②照 DEMO_SCRIPT 錄影③確認 SUBMISSION 欄位④貼表單⑤tag v1.0。
+- Key-history：`git log --all -- .env` 空；`MODEL_API_KEY=` 全歷史 6 命中皆無值
+  佔位符（.env.example＋部署文件引用），`sk-…` 0 命中。未見真值，未列印任何值。
+
 ## M5 語音、打磨、健壯性 — 2026-10-28 10:57（台北） — 狀態：done（待人類驗收＋選平台）
 - 完成：/api/transcribe 真實作（LOCAL zod、WAV 檢核 mono16/16-24kHz/≤30s/≤2MB、
   budget＋transcribeLimiter＋usage.jsonl、失敗回 200 固定 reason、空稿回
