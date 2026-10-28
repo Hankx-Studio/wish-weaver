@@ -1,0 +1,89 @@
+/* M4 scan quest + treasure cabinet. Tokens (ink/paper/gold/…) come
+   from style.css; this file only adds scan-specific layout. */
+.scan-side .scan-preview {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+.scan-side .form-error {
+  color: #895f49;
+  font-size: 12px;
+  margin: 10px 0 0;
+}
+.scan-side .treasure-appear {
+  text-align: center;
+  animation: treasure-pop 1.8s ease-out;
+}
+.treasure-img {
+  max-width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  filter: drop-shadow(0 14px 18px #a59c6a44);
+  animation: float 6s ease-in-out infinite;
+}
+.scan-side .spirit-line {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: #4d5d48;
+  margin: 14px 0 4px;
+}
+.scan-side .rest-badge {
+  display: inline-block;
+  font-size: 10px;
+  border: 1px solid #cbb486;
+  padding: 3px 8px;
+  border-radius: 20px;
+  color: #806534;
+  background: #fbf5e5de;
+  margin-bottom: 8px;
+}
+.cabinet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+.treasure-card {
+  margin: 0;
+  background: #fffaf0f7;
+  border: 1px solid #cbb486;
+  border-radius: 7px;
+  overflow: hidden;
+  box-shadow: 0 12px 26px #6a563c16;
+  animation: treasure-pop 1.8s ease-out;
+}
+.treasure-card img {
+  width: 100%;
+  height: 195px;
+  object-fit: contain;
+  background: #fdf6e7;
+  border-bottom: 1px solid #e3d3ab;
+}
+.treasure-card figcaption {
+  padding: 14px 17px;
+}
+.treasure-card strong {
+  font: 500 16px var(--serif);
+  display: block;
+  margin-bottom: 4px;
+}
+.treasure-card span {
+  font-size: 11px;
+  color: #6c735e;
+  display: block;
+  line-height: 1.8;
+}
+@keyframes treasure-pop {
+  0% { opacity: 0; transform: scale(.7); }
+  40% { opacity: .9; }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (max-width: 780px) {
+  .cabinet-grid { grid-template-columns: 1fr; gap: 19px; }
+  .treasure-card img { height: 172px; }
+}
+body.reduced .treasure-appear,
+body.reduced .treasure-card,
+body.reduced .treasure-img {
+  animation: none;
+}
