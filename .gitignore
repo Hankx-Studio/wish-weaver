@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# env (public repo stays key-free; only .env.example is tracked)
+.env
+.env*.local
+
+# logs
+*.log
+npm-debug.log*
+
+# supabase local
+supabase/.branches
+supabase/.temp
+
+# tsc
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# OS
+.DS_Store

@@ -1,0 +1,30 @@
+{
+  "name": "spirit-companion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spirit Companion — Meta Hackathon H0 (Next.js + Supabase + Meta AI)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.48.0",
+    "next": "^15.3.0",
+    "next-intl": "^3.26.0",
+    "openai": "^4.86.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
