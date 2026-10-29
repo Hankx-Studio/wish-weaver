@@ -1,0 +1,22 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import { updateSession } from '@/lib/supabase/middleware';
+
+// Refresh auth cookies on every request; gate logged-in routes.
+export async function middleware(request: NextRequest) {
+  const { response, user } = await updateSession(request);
+
+  if (request.nextUrl.pathname.startsWith('/home') && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/auth/login';
+    url.searchParams.set('next', '/home');
+    return NextResponse.redirect(url);
+  }
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};
