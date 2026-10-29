@@ -12,6 +12,12 @@ export async function updateSession(request: NextRequest): Promise<{
 }> {
   let supabaseResponse = NextResponse.next({ request });
 
+  // Missing env (e.g. Vercel env not set for this deployment): never throw
+  // from here — public pages must still load, gated routes redirect to login.
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return { response: supabaseResponse, user: null };
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
