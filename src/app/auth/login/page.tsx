@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import GoogleLoginButton from './google-login-button';
 
 export const metadata = { title: 'Sign in — Spirit Companion' };
@@ -16,13 +16,27 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const failed = params.error === 'callback_failed';
+
+  if (!isSupabaseConfigured()) {
+    return (
+      <main style={{ maxWidth: '28rem', margin: '0 auto', padding: '4rem 1.25rem' }}>
+        <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: '1.9rem' }}>
+          Sign-in unavailable
+        </h1>
+        <p style={{ lineHeight: 1.6, color: '#cfc8b4' }}>
+          This deployment is missing its Supabase configuration. Add the environment
+          variables and redeploy, then try again.
+        </p>
+      </main>
+    );
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) redirect(safeNext(params.next));
-
-  const failed = params.error === 'callback_failed';
 
   return (
     <main

@@ -1,15 +1,21 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import type { User } from '@supabase/supabase-js';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Spirit Companion — speak, and magic appears' };
 
 // Public landing page (F-01, M1 slice): hero, status board, sign-in entry.
 // English UI only. No login required to view.
 export default async function LandingPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user: User | null = null;
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      user = (await supabase.auth.getUser()).data.user;
+    } catch {
+      user = null;
+    }
+  }
 
   return (
     <main style={{ maxWidth: '56rem', margin: '0 auto', padding: '0 1.25rem 4rem' }}>

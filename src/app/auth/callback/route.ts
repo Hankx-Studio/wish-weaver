@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { isSupabaseConfigured } from '@/lib/supabase/server';
 
 type CookiesToSet = Array<{ name: string; value: string; options: CookieOptions }>;
 
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const rawNext = searchParams.get('next') ?? '/home';
   const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/home';
 
-  if (code) {
+  if (code && isSupabaseConfigured()) {
     const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

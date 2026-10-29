@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export const metadata = { title: 'Home — Spirit Companion' };
 
 // Minimal logged-in home (M1): greets the user, confirms session identity,
 // offers sign-out. Gated by middleware; double-checked here.
 export default async function HomePage() {
+  if (!isSupabaseConfigured()) redirect('/auth/login?next=/home');
   const supabase = await createClient();
   const {
     data: { user },

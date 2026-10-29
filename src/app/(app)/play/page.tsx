@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import PlayClient from './PlayClient';
 
 export const metadata = { title: 'Play — Spirit Companion' };
 
 // Gated play page (M2 slice): the game world. Authenticated only.
 export default async function PlayPage() {
+  if (!isSupabaseConfigured()) redirect('/auth/login?next=/play');
   const supabase = await createClient();
   const {
     data: { user },

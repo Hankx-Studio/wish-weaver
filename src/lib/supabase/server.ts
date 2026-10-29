@@ -3,6 +3,15 @@ import { cookies } from 'next/headers';
 
 type CookiesToSet = Array<{ name: string; value: string; options: CookieOptions }>;
 
+// True when the deployment can talk to Supabase at all. Pages must check
+// this before createClient(): without env, createServerClient throws and
+// the whole page 500s. Never throw from here.
+export function isSupabaseConfigured(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+}
+
 // Server-side Supabase client for Server Components, Server Actions,
 // and Route Handlers. Public anon key only; RLS still applies.
 export async function createClient() {
