@@ -36,7 +36,24 @@ export default async function HomePage() {
         Welcome home. Your spirit hatches here in the next milestone — spoken
         rituals, light effects, and your first evolution are on the way.
       </p>
-      <form action={signOut} style={{ marginTop: '2rem' }}>
+      <div style={{ marginTop: '2rem', display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+        <a
+          href="/play"
+          style={{
+            display: 'inline-block',
+            padding: '0.7rem 1.4rem',
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            color: '#191510',
+            backgroundColor: '#d9b36a',
+            borderRadius: '8px',
+            textDecoration: 'none',
+          }}
+        >
+          Enter the world
+        </a>
+      </div>
+      <form action={signOut} style={{ marginTop: '1rem' }}>
         <button
           type="submit"
           style={{

@@ -5,10 +5,12 @@ import { updateSession } from '@/lib/supabase/middleware';
 export async function middleware(request: NextRequest) {
   const { response, user } = await updateSession(request);
 
-  if (request.nextUrl.pathname.startsWith('/home') && !user) {
+  const pathname = request.nextUrl.pathname;
+  const gated = pathname.startsWith('/home') || pathname.startsWith('/play');
+  if (gated && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
-    url.searchParams.set('next', '/home');
+    url.searchParams.set('next', pathname);
     return NextResponse.redirect(url);
   }
 
