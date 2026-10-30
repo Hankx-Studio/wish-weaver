@@ -37,6 +37,16 @@ export async function GET(request: Request) {
       const base = forwardedHost ? `https://${forwardedHost}` : origin;
       return NextResponse.redirect(`${base}${next}`);
     }
+    // Tolerate double-fired callbacks (double-click/back-button/reload):
+    // if the first exchange already established a session, continue.
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const forwardedHost = request.headers.get('x-forwarded-host');
+      const base = forwardedHost ? `https://${forwardedHost}` : origin;
+      return NextResponse.redirect(`${base}${next}`);
+    }
   }
 
   return NextResponse.redirect(`${origin}/auth/login?error=callback_failed`);

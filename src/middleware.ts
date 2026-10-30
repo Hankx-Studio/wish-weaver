@@ -15,7 +15,8 @@ export async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
-  const gated = pathname.startsWith('/home') || pathname.startsWith('/play');
+  // Demo v1: /play is public (guest mode, zero backend). /home stays gated.
+  const gated = pathname.startsWith('/home');
   if (gated && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';

@@ -87,6 +87,11 @@ export default async function LandingPage() {
               Begin with Google
             </Link>
           )}
+          <p style={{ margin: '1rem 0 0', fontSize: '0.9rem' }}>
+            <Link href="/play" style={{ color: '#d9b36a' }}>
+              or explore the demo without signing in →
+            </Link>
+          </p>
         </div>
       </section>
 
