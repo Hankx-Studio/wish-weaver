@@ -2,13 +2,138 @@ import * as THREE from 'three';
 
 // Hooded female traveler (~1.7 tall, feet origin, faces +Z).
 // Matches visual-plan/refs/turnarounds/02-hero-female.jpg: cream short hood
-// with a flower pin, teal scarf, cream dress with belt + hip satchel,
-// ponytail, cuffed boots.
+// with a flower pin, teal scarf with a 3-segment front tail + fringe, cream
+// lathe-turned dress with hem embroidery, belt + hip satchel with strap,
+// ponytail, cuffed lace boots, gentle face with expressive eyes.
+//
+// Rig contract (scene.ts buildHeroRig depends on it): named Groups
+// hips/legL/legR/torso/head/armL/armR/scarf0/scarf1/scarf2 plus eyeL/eyeR
+// Meshes; feet origin; faces +Z. Idle motion always runs; when
+// `group.userData.phase` is a finite number a walk cycle layers on top.
 
 export type HeroFToon = (color: number) => THREE.MeshToonMaterial;
 
 const defaultToon: HeroFToon = (color: number): THREE.MeshToonMaterial =>
   new THREE.MeshToonMaterial({ color });
+
+// ---------------------------------------------------------------------------
+// Module-shared geometries (one instance reused by every hero build).
+// ---------------------------------------------------------------------------
+
+const pelvisGeo = new THREE.BoxGeometry(0.32, 0.2, 0.22);
+const tightsGeo = new THREE.CapsuleGeometry(0.085, 0.16, 4, 10);
+const bootGeo = new THREE.CylinderGeometry(0.09, 0.095, 0.24, 10);
+const cuffGeo = new THREE.TorusGeometry(0.09, 0.03, 6, 12);
+const footGeo = new THREE.BoxGeometry(0.16, 0.12, 0.26);
+const soleGeo = new THREE.BoxGeometry(0.17, 0.045, 0.29);
+const toeGeo = new THREE.SphereGeometry(0.07, 10, 8);
+const laceGeo = new THREE.BoxGeometry(0.05, 0.16, 0.02);
+
+const bodiceGeo = new THREE.CylinderGeometry(0.2, 0.24, 0.34, 12);
+const dressGeo = new THREE.LatheGeometry(
+  [
+    new THREE.Vector2(0.2, 0.2),
+    new THREE.Vector2(0.235, 0.1),
+    new THREE.Vector2(0.28, 0.0),
+    new THREE.Vector2(0.33, -0.12),
+    new THREE.Vector2(0.365, -0.22),
+  ],
+  16,
+);
+const hemGeo = new THREE.TorusGeometry(0.36, 0.024, 6, 20);
+const hemFlowerGeo = new THREE.SphereGeometry(0.026, 8, 6);
+const hemDotGeo = new THREE.SphereGeometry(0.011, 6, 6);
+const beltGeo = new THREE.TorusGeometry(0.245, 0.038, 8, 16);
+const buckleGeo = new THREE.BoxGeometry(0.07, 0.06, 0.03);
+const bellGeo = new THREE.SphereGeometry(0.026, 8, 6);
+const cloakGeo = new THREE.ConeGeometry(0.46, 0.86, 14);
+const capeletGeo = new THREE.ConeGeometry(0.33, 0.3, 12);
+const scarfWrapGeo = new THREE.TorusGeometry(0.15, 0.058, 8, 16);
+const scarfWrap2Geo = new THREE.TorusGeometry(0.125, 0.042, 8, 14);
+const tailGeo0 = new THREE.BoxGeometry(0.14, 0.15, 0.05);
+const tailGeo1 = new THREE.BoxGeometry(0.13, 0.15, 0.05);
+const tailGeo2 = new THREE.BoxGeometry(0.12, 0.14, 0.05);
+const fringeStrandGeo = new THREE.BoxGeometry(0.017, 0.055, 0.02);
+
+const pouchGeo = new THREE.BoxGeometry(0.15, 0.18, 0.1);
+const flapGeo = new THREE.BoxGeometry(0.16, 0.07, 0.11);
+const claspGeo = new THREE.BoxGeometry(0.04, 0.05, 0.02);
+const strapGeo = new THREE.BoxGeometry(0.05, 0.24, 0.025);
+
+const sleeveGeo = new THREE.CapsuleGeometry(0.08, 0.1, 4, 10);
+const ruffleGeo = new THREE.TorusGeometry(0.072, 0.022, 6, 12);
+const handGeo = new THREE.SphereGeometry(0.07, 10, 8);
+
+const faceGeo = new THREE.SphereGeometry(0.195, 18, 14);
+const hoodGeo = new THREE.SphereGeometry(0.235, 18, 14);
+const hoodRimGeo = new THREE.TorusGeometry(0.18, 0.038, 8, 18);
+const hairGeo = new THREE.SphereGeometry(0.2, 14, 12);
+const hairFringeGeo = new THREE.SphereGeometry(0.05, 8, 8);
+const ponytailGeo = new THREE.CapsuleGeometry(0.062, 0.15, 4, 8);
+const ponytailTipGeo = new THREE.SphereGeometry(0.055, 8, 8);
+const hairTieGeo = new THREE.TorusGeometry(0.055, 0.018, 6, 10);
+
+const petalGeo = new THREE.SphereGeometry(0.032, 8, 6);
+const flowerHeartGeo = new THREE.SphereGeometry(0.022, 8, 6);
+const flowerLeafGeo = new THREE.SphereGeometry(0.028, 8, 6);
+
+const eyeWhiteGeo = new THREE.SphereGeometry(0.037, 12, 10);
+const irisGeo = new THREE.SphereGeometry(0.021, 10, 8);
+const pupilGeo = new THREE.SphereGeometry(0.0095, 8, 6);
+const sparkGeo = new THREE.SphereGeometry(0.0075, 6, 6);
+const blushGeo = new THREE.SphereGeometry(0.028, 8, 6);
+const smileGeo = new THREE.TorusGeometry(0.032, 0.008, 6, 12, Math.PI * 0.7);
+const browGeo = new THREE.CapsuleGeometry(0.008, 0.05, 3, 6);
+
+// ---------------------------------------------------------------------------
+// Materials: one cached set per toon factory; basic mats shared globally.
+// ---------------------------------------------------------------------------
+
+interface HeroFMats {
+  cream: THREE.MeshToonMaterial;
+  dress: THREE.MeshToonMaterial;
+  scarf: THREE.MeshToonMaterial;
+  scarfDark: THREE.MeshToonMaterial;
+  leather: THREE.MeshToonMaterial;
+  darkLeather: THREE.MeshToonMaterial;
+  skin: THREE.MeshToonMaterial;
+  hair: THREE.MeshToonMaterial;
+  gold: THREE.MeshToonMaterial;
+  petal: THREE.MeshToonMaterial;
+  leaf: THREE.MeshToonMaterial;
+  blush: THREE.MeshToonMaterial;
+  eyeWhite: THREE.MeshToonMaterial;
+  iris: THREE.MeshToonMaterial;
+}
+
+const matCache = new WeakMap<HeroFToon, HeroFMats>();
+
+function matsFor(toon: HeroFToon): HeroFMats {
+  let m = matCache.get(toon);
+  if (!m) {
+    m = {
+      cream: toon(0xece0c8),
+      dress: toon(0xe4d6bc),
+      scarf: toon(0x4d8a84),
+      scarfDark: toon(0x3d726d),
+      leather: toon(0x7a5238),
+      darkLeather: toon(0x5d3f2c),
+      skin: toon(0xf2c19b),
+      hair: toon(0xd9b06a),
+      gold: toon(0xc9a24a),
+      petal: toon(0x5fa3b8),
+      leaf: toon(0x6f9a5a),
+      blush: toon(0xf0a08a),
+      eyeWhite: toon(0xfdfbf4),
+      iris: toon(0x1e7a8c),
+    };
+    matCache.set(toon, m);
+  }
+  return m;
+}
+
+const pupilMat = new THREE.MeshBasicMaterial({ color: 0x14323a });
+const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
 function part(
   geo: THREE.BufferGeometry,
@@ -22,19 +147,7 @@ function part(
 }
 
 export function createHeroF(toon: HeroFToon = defaultToon): THREE.Group {
-  const creamMat = toon(0xece0c8);
-  const dressMat = toon(0xe4d6bc);
-  const scarfMat = toon(0x4d8a84);
-  const leatherMat = toon(0x7a5238);
-  const darkLeatherMat = toon(0x5d3f2c);
-  const skinMat = toon(0xf2c19b);
-  const hairMat = toon(0xd9b06a);
-  const goldMat = toon(0xc9a24a);
-  const petalMat = toon(0x5fa3b8);
-  const leafMat = toon(0x6f9a5a);
-  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e5a66 });
-  const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
+  const mat = matsFor(toon);
   const group = new THREE.Group();
   group.name = 'heroF';
 
@@ -44,188 +157,243 @@ export function createHeroF(toon: HeroFToon = defaultToon): THREE.Group {
   hips.position.set(0, 0.82, 0);
   group.add(hips);
 
-  const pelvis = part(new THREE.BoxGeometry(0.32, 0.2, 0.22), dressMat, 'pelvis');
+  const pelvis = part(pelvisGeo, mat.dress, 'pelvis');
   pelvis.position.y = 0.02;
   hips.add(pelvis);
-
-  const legGeo = new THREE.CapsuleGeometry(0.085, 0.16, 4, 10);
-  const bootGeo = new THREE.CylinderGeometry(0.09, 0.095, 0.24, 10);
-  const cuffGeo = new THREE.TorusGeometry(0.09, 0.03, 6, 12);
-  const footGeo = new THREE.BoxGeometry(0.16, 0.12, 0.26);
 
   const makeLeg = (side: 1 | -1): THREE.Group => {
     const leg = new THREE.Group();
     leg.name = side < 0 ? 'legL' : 'legR';
     leg.position.set(side * 0.12, -0.02, 0);
-    const shin = part(legGeo, skinMat);
-    shin.position.y = -0.24;
-    const boot = part(bootGeo, leatherMat, side < 0 ? 'bootL' : 'bootR');
+    const tights = part(tightsGeo, mat.cream);
+    tights.position.y = -0.24;
+    const boot = part(bootGeo, mat.leather, side < 0 ? 'bootL' : 'bootR');
     boot.position.y = -0.56;
-    const cuff = part(cuffGeo, darkLeatherMat);
+    const cuff = part(cuffGeo, mat.darkLeather);
     cuff.position.y = -0.45;
     cuff.rotation.x = Math.PI / 2;
-    const foot = part(footGeo, leatherMat);
+    const foot = part(footGeo, mat.leather);
     foot.position.set(0, -0.74, 0.045);
-    leg.add(shin, boot, cuff, foot);
+    const sole = part(soleGeo, mat.darkLeather);
+    sole.position.set(0, -0.79, 0.05);
+    const toe = part(toeGeo, mat.leather);
+    toe.position.set(0, -0.75, 0.16);
+    toe.scale.set(1, 0.75, 0.8);
+    const lace = part(laceGeo, mat.darkLeather);
+    lace.position.set(0, -0.55, 0.09);
+    lace.rotation.x = 0.1;
+    leg.add(tights, boot, cuff, foot, sole, toe, lace);
     return leg;
   };
   hips.add(makeLeg(-1), makeLeg(1));
 
-  // Torso: bodice + skirt + belt + cloak ---------------------------------
+  // Torso: bodice + lathe dress + belt + cloak ---------------------------
   const torso = new THREE.Group();
   torso.name = 'torso';
   torso.position.set(0, 0.1, 0);
   hips.add(torso);
 
-  const bodice = part(
-    new THREE.CylinderGeometry(0.22, 0.27, 0.42, 12),
-    dressMat,
-    'bodice',
-  );
-  bodice.position.y = 0.3;
-  const skirt = part(new THREE.ConeGeometry(0.36, 0.5, 14), dressMat, 'dress');
-  skirt.position.y = 0.02;
-  const hem = part(new THREE.TorusGeometry(0.35, 0.025, 6, 16), creamMat, 'hem');
+  const bodice = part(bodiceGeo, mat.dress, 'bodice');
+  bodice.position.y = 0.32;
+  const dress = part(dressGeo, mat.dress, 'dress');
+  const hem = part(hemGeo, mat.cream, 'hem');
   hem.position.y = -0.22;
   hem.rotation.x = Math.PI / 2;
-  const belt = part(new THREE.TorusGeometry(0.26, 0.04, 8, 14), leatherMat, 'belt');
-  belt.position.y = 0.12;
+  const belt = part(beltGeo, mat.leather, 'belt');
+  belt.position.y = 0.13;
   belt.rotation.x = Math.PI / 2;
-  const buckle = part(new THREE.BoxGeometry(0.07, 0.06, 0.03), goldMat, 'buckle');
-  buckle.position.set(0, 0.12, 0.26);
-  torso.add(bodice, skirt, hem, belt, buckle);
+  const buckle = part(buckleGeo, mat.gold, 'buckle');
+  buckle.position.set(0, 0.13, 0.245);
+  const bell = part(bellGeo, mat.gold, 'beltBell');
+  bell.position.set(0.12, 0.1, 0.21);
+  torso.add(bodice, dress, hem, belt, buckle, bell);
 
-  const cloak = part(new THREE.ConeGeometry(0.46, 0.86, 14), creamMat, 'cloak');
+  // Hem embroidery: small teal flowers with gold hearts around the skirt.
+  const hemR = 0.345;
+  [-1.05, -0.55, 0, 0.55, 1.05, Math.PI].forEach((a, i) => {
+    const f = part(hemFlowerGeo, mat.scarf, `hemFlower${i}`);
+    f.position.set(Math.sin(a) * hemR, -0.15, Math.cos(a) * hemR);
+    f.scale.set(1, 1, 0.45);
+    f.rotation.y = a;
+    const dot = part(hemDotGeo, mat.gold);
+    dot.position.set(0, 0.005, 0.022);
+    dot.castShadow = false;
+    f.add(dot);
+    torso.add(f);
+  });
+
+  const cloak = part(cloakGeo, mat.cream, 'cloak');
   cloak.position.set(0, 0.06, -0.12);
   cloak.scale.set(1, 1, 0.62);
-  const capelet = part(new THREE.ConeGeometry(0.33, 0.3, 12), creamMat, 'capelet');
+  const capelet = part(capeletGeo, mat.cream, 'capelet');
   capelet.position.set(0, 0.42, -0.05);
   capelet.scale.set(1, 1, 0.8);
   torso.add(cloak, capelet);
 
-  const scarfWrap = part(
-    new THREE.TorusGeometry(0.15, 0.06, 8, 14),
-    scarfMat,
-    'scarfWrap',
-  );
+  // Teal scarf: double neck wrap + 3 chained tail segments, fringed tip.
+  const scarfWrap = part(scarfWrapGeo, mat.scarf, 'scarfWrap');
   scarfWrap.position.set(0, 0.45, 0.02);
   scarfWrap.rotation.x = Math.PI / 2;
-  torso.add(scarfWrap);
+  const scarfWrap2 = part(scarfWrap2Geo, mat.scarfDark, 'scarfWrap2');
+  scarfWrap2.position.set(0, 0.38, 0.03);
+  scarfWrap2.rotation.x = Math.PI / 2 + 0.12;
+  torso.add(scarfWrap, scarfWrap2);
 
-  // Scarf tail: 3 chained segments down the chest.
-  const tailWidths = [0.14, 0.13, 0.12];
+  const tailGeos = [tailGeo0, tailGeo1, tailGeo2];
   let scarfParent: THREE.Object3D = torso;
   for (let i = 0; i < 3; i++) {
     const seg = new THREE.Group();
     seg.name = `scarf${i}`;
     if (i === 0) seg.position.set(-0.09, 0.4, 0.19);
     else seg.position.set(0, -0.14, 0.01);
-    const cloth = part(new THREE.BoxGeometry(tailWidths[i]!, 0.15, 0.05), scarfMat);
+    const cloth = part(tailGeos[i]!, i === 1 ? mat.scarfDark : mat.scarf);
     cloth.position.y = -0.065;
     seg.add(cloth);
     if (i === 2) {
-      const fringe = part(new THREE.BoxGeometry(0.12, 0.04, 0.05), scarfMat, 'scarfFringe');
-      fringe.position.y = -0.15;
+      const fringe = new THREE.Group();
+      fringe.name = 'scarfFringe';
+      fringe.position.y = -0.135;
+      for (let s = 0; s < 5; s++) {
+        const strand = part(fringeStrandGeo, mat.scarfDark);
+        strand.position.set(-0.044 + s * 0.022, -0.025, 0);
+        strand.rotation.z = (s - 2) * 0.06;
+        fringe.add(strand);
+      }
       seg.add(fringe);
     }
     scarfParent.add(seg);
     scarfParent = seg;
   }
 
-  // Small hip satchel ----------------------------------------------------
+  // Hip satchel with strap + clasp --------------------------------------
   const satchel = new THREE.Group();
   satchel.name = 'satchel';
-  satchel.position.set(-0.27, 0.02, 0.12);
-  const pouch = part(new THREE.BoxGeometry(0.15, 0.18, 0.1), leatherMat, 'pouch');
-  const flap = part(new THREE.BoxGeometry(0.16, 0.07, 0.11), darkLeatherMat, 'satchelFlap');
+  satchel.position.set(-0.28, 0.02, 0.13);
+  const pouch = part(pouchGeo, mat.leather, 'pouch');
+  const flap = part(flapGeo, mat.darkLeather, 'satchelFlap');
   flap.position.y = 0.08;
-  const clasp = part(new THREE.BoxGeometry(0.04, 0.05, 0.02), goldMat, 'clasp');
+  const clasp = part(claspGeo, mat.gold, 'clasp');
   clasp.position.set(0, 0.01, 0.06);
-  satchel.add(pouch, flap, clasp);
+  const strap = part(strapGeo, mat.darkLeather, 'strap');
+  strap.position.set(0.06, 0.17, -0.01);
+  strap.rotation.z = 0.5;
+  satchel.add(pouch, flap, clasp, strap);
   torso.add(satchel);
 
-  // Arms -----------------------------------------------------------------
-  const sleeveGeo = new THREE.CapsuleGeometry(0.08, 0.1, 4, 10);
-  const handGeo = new THREE.SphereGeometry(0.07, 10, 8);
+  // Arms ----------------------------------------------------------------
   const makeArm = (side: 1 | -1): THREE.Group => {
     const arm = new THREE.Group();
     arm.name = side < 0 ? 'armL' : 'armR';
     arm.position.set(side * 0.27, 0.36, 0);
-    const sleeve = part(sleeveGeo, dressMat, side < 0 ? 'sleeveL' : 'sleeveR');
+    const sleeve = part(sleeveGeo, mat.dress, side < 0 ? 'sleeveL' : 'sleeveR');
     sleeve.position.y = -0.11;
-    const hand = part(handGeo, skinMat, side < 0 ? 'handL' : 'handR');
-    hand.position.y = -0.26;
+    const ruffle = part(ruffleGeo, mat.cream);
+    ruffle.position.y = -0.18;
+    ruffle.rotation.x = Math.PI / 2;
+    const hand = part(handGeo, mat.skin, side < 0 ? 'handL' : 'handR');
+    hand.position.y = -0.27;
     hand.scale.set(1, 1.2, 1);
-    arm.add(sleeve, hand);
+    arm.add(sleeve, ruffle, hand);
     return arm;
   };
   torso.add(makeArm(-1), makeArm(1));
 
-  // Head + short hood + flower pin + ponytail -----------------------------
+  // Head + short hood + flower pin + ponytail ---------------------------
   const head = new THREE.Group();
   head.name = 'head';
   head.position.set(0, 0.48, 0.02);
   torso.add(head);
 
-  const face = part(new THREE.SphereGeometry(0.195, 16, 14), skinMat, 'face');
+  const face = part(faceGeo, mat.skin, 'face');
   face.position.set(0, 0.02, 0.02);
-  const hood = part(new THREE.SphereGeometry(0.235, 16, 14), creamMat, 'hood');
+  const hood = part(hoodGeo, mat.cream, 'hood');
   hood.position.set(0, 0.06, -0.05);
   hood.scale.set(1.08, 1.0, 1.08);
-  const hoodRim = part(new THREE.TorusGeometry(0.18, 0.038, 8, 16), creamMat, 'hoodRim');
+  const hoodRim = part(hoodRimGeo, mat.cream, 'hoodRim');
   hoodRim.position.set(0, 0.02, 0.155);
-  const hairCap = part(new THREE.SphereGeometry(0.2, 14, 12), hairMat, 'hair');
+  const hairCap = part(hairGeo, mat.hair, 'hair');
   hairCap.position.set(0, 0.09, -0.02);
   hairCap.scale.set(1, 0.7, 1);
-  const ponytail = part(
-    new THREE.CapsuleGeometry(0.06, 0.16, 4, 8),
-    hairMat,
-    'ponytail',
-  );
-  ponytail.position.set(0, -0.06, -0.24);
+  const ponytail = part(ponytailGeo, mat.hair, 'ponytail');
+  ponytail.position.set(0, -0.08, -0.25);
   ponytail.rotation.x = 0.5;
-  head.add(face, hood, hoodRim, hairCap, ponytail);
+  const ponytailTip = part(ponytailTipGeo, mat.hair, 'ponytailTip');
+  ponytailTip.position.set(0, -0.19, -0.3);
+  ponytailTip.scale.set(0.9, 1.25, 0.9);
+  const hairTie = part(hairTieGeo, mat.scarf, 'hairTie');
+  hairTie.position.set(0, 0.0, -0.21);
+  hairTie.rotation.x = 0.5;
+  head.add(face, hood, hoodRim, hairCap, ponytail, ponytailTip, hairTie);
 
-  const fringeGeo = new THREE.SphereGeometry(0.05, 8, 8);
   for (const fx of [-0.09, 0, 0.09]) {
-    const fringe = part(fringeGeo, hairMat);
+    const fringe = part(hairFringeGeo, mat.hair);
     fringe.position.set(fx, 0.14, 0.15);
     fringe.scale.set(1, 1.3, 0.7);
     head.add(fringe);
   }
 
-  // Flower pin on the hood's left side.
+  // Flower pin on the hood's left side: 5 petals, gold heart, 2 leaves.
   const flower = new THREE.Group();
   flower.name = 'flowerPin';
   flower.position.set(-0.21, 0.16, 0.1);
   flower.rotation.y = -0.5;
-  const petalGeo = new THREE.SphereGeometry(0.032, 8, 6);
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    const petal = part(petalGeo, petalMat);
+    const petal = part(petalGeo, mat.petal);
     petal.position.set(Math.cos(a) * 0.045, Math.sin(a) * 0.045, 0);
     petal.scale.set(1, 1, 0.5);
     flower.add(petal);
   }
-  const heart = part(new THREE.SphereGeometry(0.022, 8, 6), goldMat, 'flowerHeart');
+  const heart = part(flowerHeartGeo, mat.gold, 'flowerHeart');
   heart.position.z = 0.015;
-  const leaf = part(new THREE.SphereGeometry(0.028, 8, 6), leafMat, 'flowerLeaf');
-  leaf.position.set(0.05, -0.06, -0.01);
-  leaf.scale.set(1.4, 0.7, 0.4);
-  flower.add(heart, leaf);
+  const leafA = part(flowerLeafGeo, mat.leaf, 'flowerLeaf');
+  leafA.position.set(0.05, -0.06, -0.01);
+  leafA.scale.set(1.4, 0.7, 0.4);
+  leafA.rotation.z = -0.4;
+  const leafB = part(flowerLeafGeo, mat.leaf, 'flowerLeaf2');
+  leafB.position.set(-0.045, 0.065, -0.01);
+  leafB.scale.set(1.3, 0.65, 0.4);
+  leafB.rotation.z = 0.7;
+  flower.add(heart, leafA, leafB);
   head.add(flower);
 
-  const eyeGeo = new THREE.SphereGeometry(0.034, 10, 8);
-  const sparkGeo = new THREE.SphereGeometry(0.011, 6, 6);
+  // Expressive eyes: white + teal iris + pupil + sparkle.
   for (const sx of [-1, 1]) {
-    const eye = part(eyeGeo, eyeMat, sx < 0 ? 'eyeL' : 'eyeR');
+    const eye = part(eyeWhiteGeo, mat.eyeWhite, sx < 0 ? 'eyeL' : 'eyeR');
     eye.position.set(sx * 0.074, 0.01, 0.185);
+    eye.scale.set(1, 1.15, 0.7);
+    const iris = part(irisGeo, mat.iris);
+    iris.position.set(0, 0.002, 0.024);
+    iris.scale.set(1, 1.1, 0.45);
+    const pupil = part(pupilGeo, pupilMat);
+    pupil.position.set(0, 0.003, 0.038);
+    pupil.scale.set(1, 1.15, 0.5);
     const spark = part(sparkGeo, sparkMat);
-    spark.position.set(0.012, 0.012, 0.026);
+    spark.position.set(0.009, 0.012, 0.042);
     spark.castShadow = false;
-    eye.add(spark);
+    pupil.castShadow = false;
+    iris.castShadow = false;
+    eye.add(iris, pupil, spark);
     head.add(eye);
   }
+
+  // Gentle face: blush, smile, soft brows.
+  for (const sx of [-1, 1]) {
+    const blush = part(blushGeo, mat.blush, sx < 0 ? 'blushL' : 'blushR');
+    blush.position.set(sx * 0.12, -0.045, 0.152);
+    blush.scale.set(1, 0.7, 0.4);
+    blush.castShadow = false;
+    const brow = part(browGeo, mat.hair, sx < 0 ? 'browL' : 'browR');
+    brow.position.set(sx * 0.075, 0.078, 0.182);
+    brow.rotation.z = Math.PI / 2 - sx * 0.12;
+    brow.castShadow = false;
+    head.add(blush, brow);
+  }
+  const smile = part(smileGeo, pupilMat, 'smile');
+  smile.position.set(0, -0.075, 0.175);
+  smile.rotation.set(-0.2, 0, Math.PI * 1.15);
+  smile.castShadow = false;
+  head.add(smile);
 
   return group;
 }
