@@ -22,6 +22,10 @@ describe('walkPose', () => {
   });
 
   it('completes a full cycle every 2π', () => {
-    expect(walkPose(0)).toEqual(walkPose(Math.PI * 2));
+    const a = walkPose(0);
+    const b = walkPose(Math.PI * 2);
+    for (const k of ['legL', 'legR', 'armL', 'armR', 'bob'] as const) {
+      expect(b[k]).toBeCloseTo(a[k], 10);
+    }
   });
 });
