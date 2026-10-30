@@ -1,0 +1,49 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://characters/heroes/hero.gd" id="1"]
+[ext_resource type="PackedScene" path="res://characters/heroes/Rogue_Hooded.glb" id="2"]
+
+[sub_resource type="CapsuleShape3D" id="col"]
+radius = 0.35
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="scarf_mat"]
+albedo_color = Color(0.6939, 0.3712, 0.0529, 1)
+roughness = 0.8
+
+[sub_resource type="TorusMesh" id="scarf_mesh"]
+material = SubResource("scarf_mat")
+inner_radius = 0.24
+outer_radius = 0.36
+rings = 24
+ring_segments = 12
+
+[sub_resource type="StandardMaterial3D" id="satchel_mat"]
+albedo_color = Color(0.147, 0.0685, 0.0284, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="satchel_mesh"]
+material = SubResource("satchel_mat")
+size = Vector3(0.3, 0.38, 0.2)
+
+[node name="HeroM" type="CharacterBody3D" groups=["player", "current-player"]]
+script = ExtResource("1")
+hide_meshes = Array[String](["Knife_Offhand", "1H_Crossbow", "2H_Crossbow", "Knife", "Throwable"])
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.9, 0)
+shape = SubResource("col")
+
+[node name="Model" parent="." instance=ExtResource("2")]
+scale = Vector3(0.755, 0.755, 0.755)
+
+[node name="Scarf" type="MeshInstance3D" parent="Model"]
+position = Vector3(0, 1.22, 0.02)
+mesh = SubResource("scarf_mesh")
+
+[node name="Satchel" type="MeshInstance3D" parent="Model"]
+position = Vector3(-0.52, 0.72, 0.1)
+mesh = SubResource("satchel_mesh")
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+active = false

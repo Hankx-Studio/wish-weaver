@@ -10,6 +10,7 @@ extends Node3D
 @export var animation_speed := 1.0
 
 var _time := 0.0
+var _relight_boost := 0.0
 var _canopy_layers: Array[Node3D] = []
 var _lanterns: Array[Node3D] = []
 var _lantern_mats: Array[StandardMaterial3D] = []
@@ -18,6 +19,7 @@ var _window_mat: StandardMaterial3D
 
 
 func _ready() -> void:
+	add_to_group("tree_of_life")
 	if position.length() < 0.001:
 		position = home_position
 	for i in 3:
@@ -56,14 +58,20 @@ func _process(delta: float) -> void:
 		var phase := float(i) * 0.9
 		mat.emission_energy_multiplier = (
 			1.15 + sin(t * 7.0 + phase) * 0.22 + sin(t * 13.7 + phase * 1.7) * 0.08
-		)
+		) * (1.0 + _relight_boost)
 	for i in _glyph_mats.size():
 		var glyph_mat := _glyph_mats[i]
 		if glyph_mat == null:
 			continue
-		glyph_mat.emission_energy_multiplier = 0.95 + sin(t * 2.0 + float(i) * 0.8) * 0.35
+		glyph_mat.emission_energy_multiplier = (0.95 + sin(t * 2.0 + float(i) * 0.8) * 0.35) * (1.0 + _relight_boost)
 	if _window_mat != null:
-		_window_mat.emission_energy_multiplier = 1.15 + sin(t * 3.0) * 0.15
+		_window_mat.emission_energy_multiplier = (1.15 + sin(t * 3.0) * 0.15) * (1.0 + _relight_boost)
+
+
+## Ending beat: the tree flares back to life over ~3 seconds.
+func relight() -> void:
+	var tw := create_tween()
+	tw.tween_property(self, "_relight_boost", 2.4, 3.0).set_trans(Tween.TRANS_SINE)
 
 
 ## Duplicates a mesh's shared emissive material into a per-node surface
