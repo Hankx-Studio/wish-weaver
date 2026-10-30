@@ -90,6 +90,9 @@ func _prompt_text_for(n: Node) -> String:
 func _update_prompt() -> void:
 	if _prompt == null:
 		return
+	if _ui_busy():
+		_prompt.visible = false
+		return
 	var target := get_current_target()
 	if target == null:
 		_prompt.visible = false
@@ -124,7 +127,7 @@ func _build_prompt() -> void:
 	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_prompt.add_theme_font_size_override("font_size", 28)
+	_prompt.add_theme_font_size_override("font_size", 20)
 	_prompt.add_theme_color_override("font_color", Color(1, 1, 1))
 	_prompt.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.9))
 	_prompt.add_theme_constant_override("shadow_offset_x", 2)
@@ -134,9 +137,9 @@ func _build_prompt() -> void:
 	_prompt.anchor_right = 0.5
 	_prompt.anchor_bottom = 1.0
 	_prompt.offset_left = -400.0
-	_prompt.offset_top = -330.0
+	_prompt.offset_top = -96.0
 	_prompt.offset_right = 400.0
-	_prompt.offset_bottom = -286.0
+	_prompt.offset_bottom = -56.0
 	_prompt.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_prompt.visible = false
 	_layer.add_child(_prompt)

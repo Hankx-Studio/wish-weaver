@@ -96,7 +96,7 @@ func skip() -> void:
 
 
 func show_end_card(title := "The meadow remembers light.",
-		body := "Three blessings burn as one. The canopy flares pink-gold, lanterns wake in turn, and the dark thins like morning mist.",
+		body := "Three blessings burn as one. The canopy flares pink-gold, and the dark thins like morning mist.",
 		tease := "Chapter 2: the Sunken Shrine — coming soon") -> void:
 	_playing = false
 	_cards.clear()

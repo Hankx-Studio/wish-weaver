@@ -21,6 +21,7 @@ func _ready() -> void:
 	_hero_f = get_node_or_null("HeroF") as CharacterBody3D
 	_snap_npcs_to_ground()
 	_park_hero_f()
+	_pin_player_refs()
 	_wire_npcs()
 	var director := get_tree().get_first_node_in_group("story_director")
 	if director != null and (director as Object).has_method("start_story"):
@@ -108,6 +109,18 @@ func _park_hero_f() -> void:
 	_hero_f.visible = false
 	if _hero_m != null:
 		_hero_f.global_position = _hero_m.global_position + Vector3(0, -60, 0)
+
+
+## Pin follower refs to the active hero so they never depend on tree order.
+func _pin_player_refs() -> void:
+	if _hero_m == null:
+		return
+	var im := get_tree().get_first_node_in_group("interact_manager")
+	if im != null:
+		im.set("player", _hero_m)
+	for s in get_tree().get_nodes_in_group("spirit"):
+		if (s as Object).has_method("set_target"):
+			s.call("set_target", _hero_m)
 
 
 func _wire_npcs() -> void:
