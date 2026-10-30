@@ -83,7 +83,7 @@ function getMats(): SpiritMats {
         color: CREAM,
         gradientMap: spiritRamp(),
         emissive: GLOW_GOLD,
-        emissiveIntensity: 0.55,
+        emissiveIntensity: 0.35,
       }),
       shell: new THREE.MeshToonMaterial({
         color: CREAM,
@@ -97,7 +97,7 @@ function getMats(): SpiritMats {
       halo: new THREE.MeshBasicMaterial({
         color: 0xffe9b8,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.14,
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         depthWrite: false,

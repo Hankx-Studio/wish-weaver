@@ -1,9 +1,16 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 
 export const metadata: Metadata = {
   title: 'Spirit Companion — an AI spirit that grows with your kindness',
   description:
     'Speak a blessing and watch magic appear. Your kindness grows a spirit companion — and can become real goods shared with others.',
+};
+
+// Without this, phones lay out at ~980px and clip (game-ui-ux safe-area rule).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 // Minimal root layout. Route groups ((marketing), (app), auth) render inside.
