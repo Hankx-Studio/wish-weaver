@@ -19,9 +19,9 @@ export interface ScreenInput {
   jumpPressed: boolean;
 }
 
-const SKY_TOP = new THREE.Color(0x7fb2e5);
-const SKY_BOTTOM = new THREE.Color(0xf6d9a8);
-const FOG_COLOR = new THREE.Color(0xeed9b4);
+const SKY_TOP = new THREE.Color(0x6ea8dd);
+const SKY_BOTTOM = new THREE.Color(0xf3cd94);
+const FOG_COLOR = new THREE.Color(0xe8d3ae);
 
 function makeToonRamp(steps = 4): THREE.DataTexture {
   const data = new Uint8Array(steps);
@@ -79,7 +79,7 @@ export class Game {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.0;
     container.appendChild(renderer.domElement);
     const game = new Game(renderer, container);
     game.build();
@@ -149,10 +149,14 @@ export class Game {
     this.particles.reducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.scene.fog = new THREE.Fog(FOG_COLOR, 60, 220);
+    this.scene.fog = new THREE.Fog(FOG_COLOR, 80, 300);
 
-    const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x8a9a7b, 0.9);
+    const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x8a9a7b, 1.05);
     this.scene.add(hemi);
+    // Cool fill from the opposite side so dark-cloaked shapes stay readable.
+    const fill = new THREE.DirectionalLight(0xbcd0ff, 0.55);
+    fill.position.set(-35, 24, -45);
+    this.scene.add(fill);
     const sun = new THREE.DirectionalLight(0xffe3b3, 2.6);
     sun.position.set(40, 60, 20);
     sun.castShadow = true;
@@ -243,7 +247,7 @@ export class Game {
 
   private buildMountains(): void {
     const rand = mulberry32(31);
-    const mat = this.toon(0x8fa3b8);
+    const mat = this.toon(0x7e94ac);
     for (let i = 0; i < 9; i++) {
       const a = (i / 9) * Math.PI * 2 + rand() * 0.4;
       const r = 150 + rand() * 60;
@@ -302,9 +306,7 @@ export class Game {
   private buildTrees(): void {
     const rand = mulberry32(53);
     const trunkMat = this.toon(0x7a5c42);
-    const leafMats = [0x5d8f4e, 0x6fa055, 0x4f7d46].map(
-      (c) => this.toon(c),
-    );
+    const leafMats = [0x74a75e, 0x86b968, 0x67995a].map((c) => this.toon(c));
     const spots: Array<[number, number]> = [[-24, -6], [26, 10], [-8, -34], [34, -22], [-34, 20]];
     for (const [x, z] of spots) {
       const tree = new THREE.Group();
@@ -341,19 +343,19 @@ export class Game {
   }
 
   private buildGrass(): void {
-    const geo = new THREE.ConeGeometry(0.09, 0.55, 4);
+    const geo = new THREE.ConeGeometry(0.13, 0.38, 5);
     const mat = this.toon(0xffffff);
-    const spots = this.scatterOnDisc(600, 52, 11);
+    const spots = this.scatterOnDisc(900, 52, 11);
     const mesh = new THREE.InstancedMesh(geo, mat, spots.length);
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
     spots.forEach((p, i) => {
-      dummy.position.set(p.x, 0.24 * p.s, p.z);
+      dummy.position.set(p.x, 0.17 * p.s, p.z);
       dummy.rotation.set(0, p.r, 0);
       dummy.scale.setScalar(p.s);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
-      color.setHex(0x6f9a4e).offsetHSL((p.r % 1) * 0.02 - 0.01, 0, (p.s - 1) * 0.1);
+      color.setHex(0x7fa85c).offsetHSL((p.r % 1) * 0.02 - 0.01, 0, (p.s - 1) * 0.1);
       mesh.setColorAt(i, color);
     });
     mesh.instanceMatrix.needsUpdate = true;

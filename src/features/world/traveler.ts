@@ -40,7 +40,7 @@ export function buildTraveler(
   const body = new THREE.Group();
   group.add(body);
 
-  const cloakMat = toon(0x2e3a44);
+  const cloakMat = toon(0x37434f);
   const skinMat = toon(0xf2c9a0);
   const goldMat = toon(0xd9b36a);
   const darkMat = toon(0x2b2620);

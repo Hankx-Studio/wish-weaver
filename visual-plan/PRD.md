@@ -5,12 +5,13 @@ Target feel: golden-hour meadow, soft clouds, glowing flowers, light particles;
 small cloaked traveler + white-gold wisp. Original assets only.
 
 ## Light rig (numbers)
-- Sky: gradient dome (top #7FB2E5 → horizon #F6D9A8), sun halo sprite at sun dir.
-- Fog: color #EED9B4, near 60, far 220.
-- Hemisphere: sky #BFD9FF / ground #8A9A7B, intensity 0.9.
+- Sky: gradient dome (top #6EA8DD → horizon #F3CD94), sun halo sprite at sun dir.
+- Fog: color #E8D3AE, near 80, far 300.
+- Hemisphere: sky #BFD9FF / ground #8A9A7B, intensity 1.05.
 - Sun: DirectionalLight #FFE3B3 intensity 2.6, pos (40, 60, 20), shadows 2048,
   ortho box ±70, bias -0.0004.
-- Renderer: ACESFilmic, exposure 1.05, shadows PCFSoft.
+- Fill: DirectionalLight #BCD0FF intensity 0.55 from (-35, 24, -45), no shadow.
+- Renderer: ACESFilmic, exposure 1.0, shadows PCFSoft.
 
 ## Material recipe
 - Characters/props/trees: MeshToonMaterial, 4-step gradient ramp, warm shadow
@@ -24,7 +25,7 @@ small cloaked traveler + white-gold wisp. Original assets only.
 ## Parts (9)
 1. Meadow disc r=55 + color patches 2. Sky dome + sun halo + 8 cloud billboards
 3. Far mountain ring (cones, fog-faded) 4. Stone arch landmark
-5. 5 low-poly trees (trunk + icosphere canopy) 6. 600 grass tufts (instanced)
+5. 5 low-poly trees (trunk + icosphere canopy) 6. 900 grass tufts (instanced)
 7. 150 glowing flowers (instanced) 8. Traveler (cloak/head/scarf/eyes) + wisp
 9. Fireflies (120 ambient points) + ritual burst points
 
