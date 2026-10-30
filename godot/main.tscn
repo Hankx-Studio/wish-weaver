@@ -1,0 +1,146 @@
+[gd_scene load_steps=26 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/follow_camera.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/terrain.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/tree_of_life.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/plaza.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/shop_center.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/torii_gate.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://characters/heroes/hero_m.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://characters/heroes/hero_f.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/npc_butler.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/npc_shopkeeper.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/npc_flowerkid.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/npc_elder.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/npc_gardener.tscn" id="14"]
+[ext_resource type="PackedScene" path="res://scenes/spirit.tscn" id="15"]
+[ext_resource type="Script" path="res://scripts/story/story_director.gd" id="16"]
+[ext_resource type="Script" path="res://scripts/story/interact_manager.gd" id="17"]
+[ext_resource type="PackedScene" path="res://scenes/ui/blessing_hud.tscn" id="18"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_box.tscn" id="19"]
+[ext_resource type="PackedScene" path="res://scenes/ui/intro_cards.tscn" id="20"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pickup.tscn" id="21"]
+[ext_resource type="Script" path="res://scripts/story/story_interactable.gd" id="22"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.431, 0.659, 0.867, 1)
+sky_horizon_color = Color(1, 0.863, 0.651, 1)
+ground_bottom_color = Color(0.35, 0.28, 0.22, 1)
+ground_horizon_color = Color(0.91, 0.827, 0.682, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+ambient_light_energy = 0.4
+tonemap_mode = 3
+tonemap_exposure = 1.0
+glow_enabled = false
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.91, 0.827, 0.682, 1)
+fog_depth_begin = 80.0
+fog_depth_end = 300.0
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1")
+
+[node name="HeroM" parent="." instance=ExtResource("8")]
+position = Vector3(0, 1, 0)
+
+[node name="HeroF" parent="." instance=ExtResource("9")]
+visible = false
+position = Vector3(0, -59, 0)
+
+[node name="FollowCamera" type="Camera3D" parent="."]
+position = Vector3(0, 4.5, 9)
+current = true
+fov = 70.0
+script = ExtResource("2")
+target = NodePath("../HeroM")
+offset = Vector3(0, 4.5, 9)
+
+[node name="Terrain" parent="." instance=ExtResource("3")]
+
+[node name="TreeOfLife" parent="." instance=ExtResource("4")]
+position = Vector3(0, 0, -18)
+
+[node name="Plaza" parent="." instance=ExtResource("5")]
+position = Vector3(12, 0, -2)
+rotation = Vector3(0, 0.4, 0)
+
+[node name="ShopCenter" parent="." instance=ExtResource("6")]
+position = Vector3(-12, 0, 0)
+rotation = Vector3(0, 1.5707963, 0)
+
+[node name="ToriiGate" parent="." instance=ExtResource("7")]
+position = Vector3(18, 0, -30)
+
+[node name="Rowan" parent="." instance=ExtResource("10")]
+position = Vector3(15.25, 0.5, -0.98)
+rotation = Vector3(0, 1.266, 0)
+
+[node name="Mabel" parent="." instance=ExtResource("11")]
+position = Vector3(-8.6, 0.5, 0)
+rotation = Vector3(0, -1.5708, 0)
+
+[node name="Poppy" parent="." instance=ExtResource("12")]
+position = Vector3(5.95, 0.5, 2.18)
+rotation = Vector3(0, -0.966, 0)
+
+[node name="Ilsa" parent="." instance=ExtResource("13")]
+position = Vector3(2.6, 0.5, -15.4)
+rotation = Vector3(0, 3.1416, 0)
+
+[node name="Bram" parent="." instance=ExtResource("14")]
+position = Vector3(-9.5, 0.5, 4.5)
+rotation = Vector3(0, -1.727, 0)
+
+[node name="Spirit" parent="." instance=ExtResource("15")]
+position = Vector3(1.2, 1.6, 1.2)
+
+[node name="StoryDirector" type="Node" parent="."]
+script = ExtResource("16")
+
+[node name="InteractManager" type="Node" parent="."]
+script = ExtResource("17")
+
+[node name="BlessingHUD" parent="." instance=ExtResource("18")]
+
+[node name="DialogueBox" parent="." instance=ExtResource("19")]
+
+[node name="IntroCards" parent="." instance=ExtResource("20")]
+
+[node name="FountainTouch" type="Node3D" parent="."]
+position = Vector3(12, 1, -2)
+script = ExtResource("22")
+action = "fountain"
+prompt = "Touch the fountain (E)"
+
+[node name="TreeDoor" type="Node3D" parent="."]
+position = Vector3(0, 1.2, -16.1)
+script = ExtResource("22")
+action = "tree_door"
+prompt = "Press light to the tree door (E)"
+
+[node name="Apple0" parent="." instance=ExtResource("21")]
+position = Vector3(5, 1, 3)
+
+[node name="Apple1" parent="." instance=ExtResource("21")]
+position = Vector3(-5, 1, 5)
+
+[node name="Apple2" parent="." instance=ExtResource("21")]
+position = Vector3(2, 1, -9)
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.9250245, 1.1071487, 0)
+light_color = Color(1, 0.89, 0.701, 1)
+light_energy = 1.0
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")

@@ -1,0 +1,331 @@
+[gd_scene load_steps=36 format=3]
+
+[ext_resource type="Script" path="res://scripts/npc_base.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="mat_skin"]
+albedo_color = Color(0.855, 0.548, 0.344, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="mat_cream"]
+albedo_color = Color(0.915, 0.855, 0.72, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="mat_green"]
+albedo_color = Color(0.194, 0.273, 0.107, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="mat_green_light"]
+albedo_color = Color(0.32, 0.42, 0.19, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="mat_tan"]
+albedo_color = Color(0.613, 0.305, 0.115, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="mat_brown"]
+albedo_color = Color(0.194, 0.069, 0.021, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="mat_shoe"]
+albedo_color = Color(0.1, 0.045, 0.02, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="mat_wicker"]
+albedo_color = Color(0.402, 0.188, 0.061, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_red"]
+albedo_color = Color(0.58, 0.032, 0.026, 1)
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="mat_bread"]
+albedo_color = Color(0.683, 0.353, 0.129, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="mat_dark"]
+albedo_color = Color(0.02, 0.018, 0.02, 1)
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="mesh_shoe"]
+material = SubResource("mat_shoe")
+size = Vector3(0.14, 0.1, 0.24)
+
+[sub_resource type="BoxMesh" id="mesh_leg"]
+material = SubResource("mat_skin")
+size = Vector3(0.12, 0.3, 0.12)
+
+[sub_resource type="CylinderMesh" id="mesh_skirt"]
+material = SubResource("mat_green")
+top_radius = 0.28
+bottom_radius = 0.48
+height = 0.75
+radial_segments = 14
+
+[sub_resource type="BoxMesh" id="mesh_torso"]
+material = SubResource("mat_cream")
+size = Vector3(0.48, 0.55, 0.3)
+
+[sub_resource type="BoxMesh" id="mesh_apron"]
+material = SubResource("mat_green")
+size = Vector3(0.4, 0.5, 0.06)
+
+[sub_resource type="BoxMesh" id="mesh_pocket"]
+material = SubResource("mat_green_light")
+size = Vector3(0.22, 0.18, 0.05)
+
+[sub_resource type="BoxMesh" id="mesh_strap"]
+material = SubResource("mat_brown")
+size = Vector3(0.08, 0.35, 0.05)
+
+[sub_resource type="BoxMesh" id="mesh_belt"]
+material = SubResource("mat_brown")
+size = Vector3(0.5, 0.1, 0.32)
+
+[sub_resource type="BoxMesh" id="mesh_bow"]
+material = SubResource("mat_brown")
+size = Vector3(0.18, 0.12, 0.08)
+
+[sub_resource type="CylinderMesh" id="mesh_arm"]
+material = SubResource("mat_skin")
+top_radius = 0.07
+bottom_radius = 0.07
+height = 0.55
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="mesh_sleeve"]
+material = SubResource("mat_cream")
+top_radius = 0.09
+bottom_radius = 0.09
+height = 0.25
+radial_segments = 10
+
+[sub_resource type="SphereMesh" id="mesh_hand"]
+material = SubResource("mat_skin")
+radius = 0.07
+height = 0.14
+radial_segments = 10
+rings = 8
+
+[sub_resource type="SphereMesh" id="mesh_head"]
+material = SubResource("mat_skin")
+radius = 0.22
+height = 0.44
+radial_segments = 14
+rings = 10
+
+[sub_resource type="SphereMesh" id="mesh_eye"]
+material = SubResource("mat_dark")
+radius = 0.032
+height = 0.064
+radial_segments = 8
+rings = 6
+
+[sub_resource type="SphereMesh" id="mesh_hair"]
+material = SubResource("mat_brown")
+radius = 0.2
+height = 0.4
+radial_segments = 12
+rings = 8
+
+[sub_resource type="SphereMesh" id="mesh_scarf"]
+material = SubResource("mat_tan")
+radius = 0.25
+height = 0.5
+radial_segments = 14
+rings = 10
+
+[sub_resource type="SphereMesh" id="mesh_knot"]
+material = SubResource("mat_tan")
+radius = 0.07
+height = 0.14
+radial_segments = 8
+rings = 6
+
+[sub_resource type="BoxMesh" id="mesh_tail"]
+material = SubResource("mat_tan")
+size = Vector3(0.09, 0.28, 0.04)
+
+[sub_resource type="CylinderMesh" id="mesh_basket"]
+material = SubResource("mat_wicker")
+top_radius = 0.22
+bottom_radius = 0.16
+height = 0.22
+radial_segments = 12
+
+[sub_resource type="TorusMesh" id="mesh_handle"]
+material = SubResource("mat_wicker")
+inner_radius = 0.15
+outer_radius = 0.17
+rings = 16
+ring_segments = 6
+
+[sub_resource type="SphereMesh" id="mesh_apple"]
+material = SubResource("mat_red")
+radius = 0.06
+height = 0.12
+radial_segments = 10
+rings = 8
+
+[sub_resource type="BoxMesh" id="mesh_bread"]
+material = SubResource("mat_bread")
+size = Vector3(0.2, 0.08, 0.09)
+
+[sub_resource type="CapsuleShape3D" id="shape_body"]
+radius = 0.35
+height = 1.5
+
+[node name="Shopkeeper" type="StaticBody3D"]
+script = ExtResource("1")
+npc_name = "Mabel"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.8, 0)
+shape = SubResource("shape_body")
+
+[node name="VisualRoot" type="Node3D" parent="."]
+
+[node name="ShoeL" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(-0.13, 0.05, 0.03)
+mesh = SubResource("mesh_shoe")
+
+[node name="ShoeR" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0.13, 0.05, 0.03)
+mesh = SubResource("mesh_shoe")
+
+[node name="LegL" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(-0.12, 0.25, 0)
+mesh = SubResource("mesh_leg")
+
+[node name="LegR" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0.12, 0.25, 0)
+mesh = SubResource("mesh_leg")
+
+[node name="Skirt" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 0.55, 0)
+mesh = SubResource("mesh_skirt")
+
+[node name="Torso" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 1.1, 0)
+mesh = SubResource("mesh_torso")
+
+[node name="Apron" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 1.05, 0.16)
+mesh = SubResource("mesh_apron")
+
+[node name="Pocket" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 0.72, 0.32)
+mesh = SubResource("mesh_pocket")
+
+[node name="StrapL" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(-0.15, 1.28, 0.16)
+mesh = SubResource("mesh_strap")
+
+[node name="StrapR" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0.15, 1.28, 0.16)
+mesh = SubResource("mesh_strap")
+
+[node name="Belt" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 0.85, 0)
+mesh = SubResource("mesh_belt")
+
+[node name="Bow" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0, 0.85, -0.2)
+mesh = SubResource("mesh_bow")
+
+[node name="ArmL" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(-0.32, 1.05, 0)
+rotation = Vector3(0, 0, 0.12)
+mesh = SubResource("mesh_arm")
+
+[node name="ArmR" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0.32, 1.05, 0)
+rotation = Vector3(0, 0, -0.12)
+mesh = SubResource("mesh_arm")
+
+[node name="SleeveL" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(-0.335, 1.28, 0)
+rotation = Vector3(0, 0, 0.12)
+mesh = SubResource("mesh_sleeve")
+
+[node name="SleeveR" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0.335, 1.28, 0)
+rotation = Vector3(0, 0, -0.12)
+mesh = SubResource("mesh_sleeve")
+
+[node name="HandL" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(-0.37, 0.76, 0.02)
+mesh = SubResource("mesh_hand")
+
+[node name="HandR" type="MeshInstance3D" parent="VisualRoot"]
+position = Vector3(0.42, 0.72, 0.08)
+mesh = SubResource("mesh_hand")
+
+[node name="HeadPivot" type="Node3D" parent="VisualRoot"]
+position = Vector3(0, 1.42, 0)
+
+[node name="Head" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(0, 0.14, 0)
+mesh = SubResource("mesh_head")
+
+[node name="EyeL" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(-0.08, 0.16, 0.19)
+mesh = SubResource("mesh_eye")
+
+[node name="EyeR" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(0.08, 0.16, 0.19)
+mesh = SubResource("mesh_eye")
+
+[node name="Hair" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(0, 0.2, 0.02)
+scale = Vector3(1, 0.7, 0.95)
+mesh = SubResource("mesh_hair")
+
+[node name="Scarf" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(0, 0.24, -0.03)
+scale = Vector3(1.05, 0.85, 1.05)
+mesh = SubResource("mesh_scarf")
+
+[node name="Knot" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(0.08, 0, -0.22)
+mesh = SubResource("mesh_knot")
+
+[node name="Tail" type="MeshInstance3D" parent="VisualRoot/HeadPivot"]
+position = Vector3(0.1, -0.12, -0.23)
+rotation = Vector3(0.1, 0, 0.15)
+mesh = SubResource("mesh_tail")
+
+[node name="Basket" type="Node3D" parent="VisualRoot"]
+position = Vector3(0.48, 0.5, 0.1)
+
+[node name="Cup" type="MeshInstance3D" parent="VisualRoot/Basket"]
+mesh = SubResource("mesh_basket")
+
+[node name="Handle" type="MeshInstance3D" parent="VisualRoot/Basket"]
+position = Vector3(0, 0.12, 0)
+rotation = Vector3(1.5708, 0, 0)
+mesh = SubResource("mesh_handle")
+
+[node name="Apple1" type="MeshInstance3D" parent="VisualRoot/Basket"]
+position = Vector3(-0.07, 0.1, 0.03)
+mesh = SubResource("mesh_apple")
+
+[node name="Apple2" type="MeshInstance3D" parent="VisualRoot/Basket"]
+position = Vector3(0.06, 0.1, -0.04)
+mesh = SubResource("mesh_apple")
+
+[node name="Apple3" type="MeshInstance3D" parent="VisualRoot/Basket"]
+position = Vector3(0, 0.12, 0.07)
+mesh = SubResource("mesh_apple")
+
+[node name="Bread" type="MeshInstance3D" parent="VisualRoot/Basket"]
+position = Vector3(0.02, 0.12, -0.06)
+rotation = Vector3(0, 0.4, 0.15)
+mesh = SubResource("mesh_bread")
+
+[node name="NameLabel" type="Label3D" parent="."]
+position = Vector3(0, 2.1, 0)
+billboard = 1
+font_size = 48
+pixel_size = 0.01
+outline_size = 8
+text = "Mabel"

@@ -1,0 +1,154 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/spirit.gd" id="1"]
+
+[sub_resource type="StandardMaterial3D" id="mat_core"]
+albedo_color = Color(1, 0.93, 0.78, 1)
+roughness = 0.35
+emission_enabled = true
+emission = Color(1, 0.9, 0.7, 1)
+emission_energy_multiplier = 1.4
+
+[sub_resource type="StandardMaterial3D" id="mat_halo"]
+transparency = 1
+shading_mode = 0
+blend_mode = 1
+cull_mode = 2
+albedo_color = Color(1, 0.85, 0.55, 0.22)
+
+[sub_resource type="StandardMaterial3D" id="mat_dark"]
+albedo_color = Color(0.05, 0.04, 0.05, 1)
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="mat_blush"]
+albedo_color = Color(0.95, 0.45, 0.45, 1)
+roughness = 0.5
+emission_enabled = true
+emission = Color(0.9, 0.3, 0.3, 1)
+emission_energy_multiplier = 0.4
+
+[sub_resource type="StandardMaterial3D" id="mat_spark"]
+albedo_color = Color(1, 0.95, 0.75, 1)
+roughness = 0.3
+emission_enabled = true
+emission = Color(1, 0.95, 0.75, 1)
+emission_energy_multiplier = 1.0
+
+[sub_resource type="SphereMesh" id="mesh_core"]
+material = SubResource("mat_core")
+radius = 0.3
+height = 0.6
+radial_segments = 20
+rings = 14
+
+[sub_resource type="CylinderMesh" id="mesh_tip"]
+material = SubResource("mat_core")
+top_radius = 0.0
+bottom_radius = 0.13
+height = 0.34
+radial_segments = 12
+
+[sub_resource type="SphereMesh" id="mesh_halo"]
+material = SubResource("mat_halo")
+radius = 0.48
+height = 0.96
+radial_segments = 12
+rings = 8
+
+[sub_resource type="SphereMesh" id="mesh_eye"]
+material = SubResource("mat_dark")
+radius = 0.055
+height = 0.11
+radial_segments = 10
+rings = 6
+
+[sub_resource type="SphereMesh" id="mesh_blush"]
+material = SubResource("mat_blush")
+radius = 0.05
+height = 0.1
+radial_segments = 8
+rings = 6
+
+[sub_resource type="SphereMesh" id="mesh_nub"]
+material = SubResource("mat_core")
+radius = 0.075
+height = 0.15
+radial_segments = 8
+rings = 6
+
+[sub_resource type="SphereMesh" id="mesh_spark"]
+material = SubResource("mat_spark")
+radius = 0.03
+height = 0.06
+radial_segments = 6
+rings = 4
+
+[sub_resource type="ParticleProcessMaterial" id="pmm_sparkle"]
+emission_shape = 1
+emission_sphere_radius = 0.4
+direction = Vector3(0, 1, 0)
+spread = 30.0
+initial_velocity_min = 0.3
+initial_velocity_max = 0.8
+gravity = Vector3(0, 0.5, 0)
+scale_min = 0.5
+scale_max = 1.0
+color = Color(1, 0.93, 0.7, 1)
+
+[node name="Spirit" type="Node3D" groups=["spirit"]]
+script = ExtResource("1")
+target_path = NodePath("../Player")
+
+[node name="Rig" type="Node3D" parent="."]
+
+[node name="Core" type="MeshInstance3D" parent="Rig"]
+scale = Vector3(1, 1.25, 0.95)
+mesh = SubResource("mesh_core")
+
+[node name="Tip" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0, 0.48, 0)
+mesh = SubResource("mesh_tip")
+
+[node name="Halo" type="MeshInstance3D" parent="Rig"]
+cast_shadow = 0
+mesh = SubResource("mesh_halo")
+
+[node name="EyeL" type="MeshInstance3D" parent="Rig"]
+position = Vector3(-0.12, 0.06, 0.24)
+scale = Vector3(1, 1.35, 0.55)
+mesh = SubResource("mesh_eye")
+
+[node name="EyeR" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0.12, 0.06, 0.24)
+scale = Vector3(1, 1.35, 0.55)
+mesh = SubResource("mesh_eye")
+
+[node name="BlushL" type="MeshInstance3D" parent="Rig"]
+position = Vector3(-0.2, -0.08, 0.19)
+scale = Vector3(1, 0.6, 0.5)
+mesh = SubResource("mesh_blush")
+
+[node name="BlushR" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0.2, -0.08, 0.19)
+scale = Vector3(1, 0.6, 0.5)
+mesh = SubResource("mesh_blush")
+
+[node name="NubL" type="MeshInstance3D" parent="Rig"]
+position = Vector3(-0.3, -0.06, 0)
+mesh = SubResource("mesh_nub")
+
+[node name="NubR" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0.3, -0.06, 0)
+mesh = SubResource("mesh_nub")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.9, 0.7, 1)
+light_energy = 0.7
+omni_range = 3.0
+
+[node name="Sparkles" type="GPUParticles3D" parent="."]
+amount = 16
+lifetime = 1.6
+visibility_aabb = AABB(-1, -1, -1, 2, 3, 2)
+process_material = SubResource("pmm_sparkle")
+draw_pass_1 = SubResource("mesh_spark")
