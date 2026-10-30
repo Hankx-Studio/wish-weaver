@@ -3,19 +3,26 @@ import { mulberry32, type EffectEvent } from '@/lib/effects/types';
 
 const MAX = 600;
 
+type RitualMotion = EffectEvent['motion'];
+
 function hexToRgb(hex: string): [number, number, number] {
   const v = parseInt(hex.replace('#', ''), 16);
   return [((v >> 16) & 0xff) / 255, ((v >> 8) & 0xff) / 255, (v & 0xff) / 255];
 }
 
+// Hot white core with a soft halo falloff. Vertex colors tint the sprite;
+// the texture only shapes the glow. Size attenuation + additive blending
+// (set on the materials below) keep the Sky/Ghibli soft-light feel.
 export function makeSoftDotTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 64;
   c.height = 64;
   const ctx = c.getContext('2d')!;
-  const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
+  const g = ctx.createRadialGradient(32, 32, 1, 32, 32, 31);
   g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+  g.addColorStop(0.22, 'rgba(255,255,255,0.95)');
+  g.addColorStop(0.45, 'rgba(255,255,255,0.45)');
+  g.addColorStop(0.75, 'rgba(255,255,255,0.12)');
   g.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 64, 64);
@@ -23,6 +30,7 @@ export function makeSoftDotTexture(): THREE.CanvasTexture {
 }
 
 interface Particle {
+  motion: RitualMotion;
   vx: number;
   vy: number;
   vz: number;
@@ -32,6 +40,10 @@ interface Particle {
   g: number;
   b: number;
   baseAlpha: number;
+  // Burst center (XZ) for vortex steering, plus a per-particle sway phase.
+  cx: number;
+  cz: number;
+  sw: number;
 }
 
 // Seeded ritual bursts as a single THREE.Points cloud (additive; fade-out by
@@ -81,33 +93,93 @@ export class ParticleField {
       const color = fx.palette[Math.floor(rand() * fx.palette.length)] ?? '#FFFFFF';
       const [r, g, b] = hexToRgb(color);
       const theta = rand() * Math.PI * 2;
-      const up = rand() * 0.9 + 0.25;
+      const cos = Math.cos(theta);
+      const sin = Math.sin(theta);
       const speed = this.initialSpeed(fx.motion, rand);
-      const spread = fx.motion === 'halo' ? 0.8 + rand() * 0.7 : rand() * 0.5;
       const idx = this.parts.length;
-      this.posAttr.setXYZ(
-        idx,
-        at.x + Math.cos(theta) * spread,
-        at.y + (rand() - 0.3) * spread,
-        at.z + Math.sin(theta) * spread,
-      );
+      const baseAlpha = Math.min(fx.brightness + 0.3, 1);
+      const sw = rand() * Math.PI * 2;
+      let px = at.x;
+      let py = at.y;
+      let pz = at.z;
+      let vx = 0;
+      let vy = 0;
+      let vz = 0;
+      switch (fx.motion) {
+        case 'halo': {
+          // Ring expansion: spawn on a flat ring, fly radially outward.
+          const radius = 0.8 + rand() * 0.7;
+          px += cos * radius;
+          py += (rand() - 0.5) * 0.35;
+          pz += sin * radius;
+          vx = cos * speed;
+          vy = 0.25 + rand() * 0.5;
+          vz = sin * speed;
+          break;
+        }
+        case 'swirl': {
+          // Vortex: spawn in a small disc, launch tangentially around Y.
+          const radius = rand() * 0.9;
+          px += cos * radius;
+          py += (rand() - 0.5) * 0.8;
+          pz += sin * radius;
+          const inward = 0.35;
+          vx = -sin * speed - cos * inward;
+          vy = 0.9 + rand() * 1.2;
+          vz = cos * speed - sin * inward;
+          break;
+        }
+        case 'pulse': {
+          // Shockwave: spawn near the center, expand as a spherical shell.
+          const phi = Math.acos(2 * rand() - 1);
+          const dx = Math.sin(phi) * cos;
+          const dy = Math.cos(phi) * 0.9 + 0.25;
+          const dz = Math.sin(phi) * sin;
+          const off = rand() * 0.25;
+          px += dx * off;
+          py += dy * off;
+          pz += dz * off;
+          vx = dx * speed;
+          vy = dy * speed;
+          vz = dz * speed;
+          break;
+        }
+        case 'drift': {
+          // Petals: spawn across a wide soft disc, barely moving.
+          const radius = Math.sqrt(rand()) * 1.6;
+          px += cos * radius;
+          py += (rand() - 0.4) * 1.2;
+          pz += sin * radius;
+          vx = cos * speed * 0.3;
+          vy = 0.15 + rand() * 0.35;
+          vz = sin * speed * 0.3;
+          break;
+        }
+      }
+      this.posAttr.setXYZ(idx, px, py, pz);
+      this.colAttr.setXYZ(idx, r * baseAlpha, g * baseAlpha, b * baseAlpha);
       this.parts.push({
-        vx: Math.cos(theta) * speed,
-        vy: up * speed * (fx.motion === 'drift' ? 0.4 : 0.8),
-        vz: Math.sin(theta) * speed,
+        motion: fx.motion,
+        vx,
+        vy,
+        vz,
         life: 0,
         ttl: ttl * (0.6 + rand() * 0.4),
         r,
         g,
         b,
-        baseAlpha: Math.min(fx.brightness + 0.3, 1),
+        baseAlpha,
+        cx: at.x,
+        cz: at.z,
+        sw,
       });
     }
     this.geo.setDrawRange(0, this.parts.length);
     this.posAttr.needsUpdate = true;
+    this.colAttr.needsUpdate = true;
   }
 
-  private initialSpeed(motion: EffectEvent['motion'], rand: () => number): number {
+  private initialSpeed(motion: RitualMotion, rand: () => number): number {
     switch (motion) {
       case 'halo':
         return 1.2 + rand() * 1.6;
@@ -160,9 +232,10 @@ export class ParticleField {
       this.ring.scale.set(s, s, s);
       if (k >= 1) this.clearRing();
     }
+    const dtc = Math.min(dt, 0.05);
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const p = this.parts[i]!;
-      p.life += dt;
+      p.life += dtc;
       if (p.life >= p.ttl) {
         const last = this.parts.length - 1;
         if (i !== last) {
@@ -173,21 +246,86 @@ export class ParticleField {
             this.posAttr.getY(last),
             this.posAttr.getZ(last),
           );
+          this.colAttr.setXYZ(
+            i,
+            this.colAttr.getX(last),
+            this.colAttr.getY(last),
+            this.colAttr.getZ(last),
+          );
         }
         this.parts.pop();
         continue;
       }
       const k = p.life / p.ttl;
-      const x = this.posAttr.getX(i) + p.vx * dt;
-      const y = this.posAttr.getY(i) + (p.vy - 0.35 * dt * 60 * 0.02) * dt;
-      const z = this.posAttr.getZ(i) + p.vz * dt;
-      p.vx *= 1 - 0.6 * dt;
-      p.vz *= 1 - 0.6 * dt;
-      p.vy = p.vy * (1 - 0.4 * dt) + 0.25 * dt;
+      let x = this.posAttr.getX(i);
+      let y = this.posAttr.getY(i);
+      let z = this.posAttr.getZ(i);
+      let fade: number;
+      switch (p.motion) {
+        case 'halo': {
+          // Expanding ring: radial glide with mild damping + gentle lift.
+          const damp = 1 - 0.9 * dtc;
+          p.vx *= damp;
+          p.vz *= damp;
+          p.vy = p.vy * (1 - 0.5 * dtc) + 0.2 * dtc;
+          x += p.vx * dtc;
+          y += (p.vy + Math.sin(time * 3 + p.sw) * 0.12) * dtc;
+          z += p.vz * dtc;
+          fade = 1 - k;
+          break;
+        }
+        case 'swirl': {
+          // Vortex: curl around the burst axis, spiral up and out.
+          const dx = x - p.cx;
+          const dz = z - p.cz;
+          const dist = Math.sqrt(dx * dx + dz * dz) + 0.001;
+          const nx = dx / dist;
+          const nz = dz / dist;
+          const curl = 3.2 * dtc;
+          const pinch = (1.1 - Math.min(dist, 1.1)) * 1.6 * dtc;
+          p.vx += (-nz * curl + nx * pinch) * (1 - k * 0.6);
+          p.vz += (nx * curl + nz * pinch) * (1 - k * 0.6);
+          const damp = 1 - 0.35 * dtc;
+          p.vx *= damp;
+          p.vz *= damp;
+          p.vy = p.vy * (1 - 0.3 * dtc) + 0.55 * dtc;
+          x += p.vx * dtc;
+          y += p.vy * dtc;
+          z += p.vz * dtc;
+          fade = 1 - k;
+          break;
+        }
+        case 'pulse': {
+          // Shockwave: fast early expansion, then the shell dissolves.
+          const boost = k < 0.35 ? 1 + 2.4 * dtc : 1 - 1.4 * dtc;
+          p.vx *= boost;
+          p.vz *= boost;
+          p.vy = p.vy * boost + 0.15 * dtc;
+          x += p.vx * dtc;
+          y += p.vy * dtc;
+          z += p.vz * dtc;
+          const shell = 1 - k;
+          fade = shell * shell;
+          break;
+        }
+        case 'drift': {
+          // Petals: buoyant flutter with sinusoidal sway.
+          const sway = Math.sin(time * 2.1 + p.sw);
+          const sway2 = Math.cos(time * 1.6 + p.sw * 1.3);
+          p.vx = p.vx * (1 - 1.2 * dtc) + sway * 0.55 * dtc;
+          p.vz = p.vz * (1 - 1.2 * dtc) + sway2 * 0.55 * dtc;
+          p.vy = p.vy * (1 - 0.8 * dtc) + (0.22 + sway * 0.1) * dtc;
+          x += p.vx * dtc;
+          y += p.vy * dtc;
+          z += p.vz * dtc;
+          fade = Math.pow(Math.sin(Math.PI * Math.min(Math.max(k, 0), 1)), 0.7);
+          break;
+        }
+      }
       this.posAttr.setXYZ(i, x, y, z);
-      const throb = 0.75 + 0.25 * Math.sin(time * 6 + i);
-      const fade = p.baseAlpha * (1 - k) * throb;
-      this.colAttr.setXYZ(i, p.r * fade, p.g * fade, p.b * fade);
+      const throb = 0.75 + 0.25 * Math.sin(time * 6 + p.sw);
+      const a = p.baseAlpha * fade * throb;
+      this.colAttr.setXYZ(i, p.r * a, p.g * a, p.b * a);
     }
     this.geo.setDrawRange(0, this.parts.length);
     this.posAttr.needsUpdate = true;
@@ -202,12 +340,14 @@ export class ParticleField {
   }
 }
 
-// Slow ambient fireflies drifting over the meadow.
+// Slow ambient fireflies drifting over the meadow, with a gentle color
+// twinkle (warm gold breathing toward cool white, each on its own phase).
 export class Fireflies {
   readonly points: THREE.Points;
   private geo = new THREE.BufferGeometry();
   private base: Float32Array;
   private phase: Float32Array;
+  private warmMix: Float32Array;
   private count: number;
 
   constructor(count = 120, radius = 50, seed = 77) {
@@ -215,6 +355,7 @@ export class Fireflies {
     const rand = mulberry32(seed);
     this.base = new Float32Array(count * 3);
     this.phase = new Float32Array(count);
+    this.warmMix = new Float32Array(count);
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -225,13 +366,19 @@ export class Fireflies {
       this.base[i * 3 + 2] = Math.sin(t) * r;
       this.phase[i] = rand() * Math.PI * 2;
       const warm = rand() > 0.35;
-      col[i * 3] = warm ? 1 : 0.6;
-      col[i * 3 + 1] = warm ? 0.85 : 0.85;
-      col[i * 3 + 2] = warm ? 0.5 : 1;
+      const w = warm ? 0.75 + rand() * 0.25 : rand() * 0.25;
+      this.warmMix[i] = w;
+      col[i * 3] = 0.6 + 0.4 * w;
+      col[i * 3 + 1] = 0.85;
+      col[i * 3 + 2] = 1 - 0.5 * w;
     }
     pos.set(this.base);
-    this.geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    this.geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const posAttr = new THREE.BufferAttribute(pos, 3);
+    posAttr.setUsage(THREE.DynamicDrawUsage);
+    const colAttr = new THREE.BufferAttribute(col, 3);
+    colAttr.setUsage(THREE.DynamicDrawUsage);
+    this.geo.setAttribute('position', posAttr);
+    this.geo.setAttribute('color', colAttr);
     const mat = new THREE.PointsMaterial({
       size: 0.35,
       vertexColors: true,
@@ -241,26 +388,47 @@ export class Fireflies {
       blending: THREE.AdditiveBlending,
       sizeAttenuation: true,
     });
+    // Round soft sprites; guarded so non-DOM imports (SSR/tests) stay safe.
+    if (typeof document !== 'undefined') {
+      mat.map = makeSoftDotTexture();
+      mat.needsUpdate = true;
+    }
     this.points = new THREE.Points(this.geo, mat);
     this.points.frustumCulled = false;
   }
 
   update(time: number): void {
-    const attr = this.geo.getAttribute('position') as THREE.BufferAttribute;
+    const posAttr = this.geo.getAttribute('position') as THREE.BufferAttribute;
+    const colAttr = this.geo.getAttribute('color') as THREE.BufferAttribute;
     for (let i = 0; i < this.count; i++) {
       const ph = this.phase[i]!;
-      attr.setXYZ(
+      posAttr.setXYZ(
         i,
         this.base[i * 3]! + Math.sin(time * 0.4 + ph) * 1.2,
         this.base[i * 3 + 1]! + Math.sin(time * 0.6 + ph * 1.7) * 0.5,
         this.base[i * 3 + 2]! + Math.cos(time * 0.33 + ph) * 1.2,
       );
+      // Gentle twinkle: brightness breathes and the hue sways between
+      // warm gold and cool white around each firefly's base mix.
+      const w = this.warmMix[i]!;
+      const tw = 0.62 + 0.38 * Math.sin(time * 1.7 + ph * 2.3);
+      const sway = 0.5 + 0.5 * Math.sin(time * 0.9 + ph);
+      const m = Math.min(Math.max(w + (sway - 0.5) * 0.35, 0), 1);
+      colAttr.setXYZ(
+        i,
+        (0.6 + 0.4 * m) * tw,
+        0.85 * tw,
+        (1 - 0.5 * m) * tw,
+      );
     }
-    attr.needsUpdate = true;
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
   }
 
   dispose(): void {
     this.geo.dispose();
-    (this.points.material as THREE.Material).dispose();
+    const mat = this.points.material as THREE.PointsMaterial;
+    mat.map?.dispose();
+    mat.dispose();
   }
 }

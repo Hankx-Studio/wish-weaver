@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { FALLBACK_EFFECT, matchLocalPreset, type IntentName } from '@/lib/meta/intent';
 import { INTENT_EFFECTS, INTENT_REPLY, type EffectEvent } from '@/lib/effects/types';
 import RitualBar from '@/features/world/RitualBar';
 import type { Game } from '@/features/world/scene';
+import { mountAmbient, playCastChime } from '@/features/world/audio';
 
 // Pixi touches the DOM at boot; keep it out of server rendering entirely.
 const GameCanvas = dynamic(() => import('@/features/world/GameCanvas'), {
@@ -38,6 +39,12 @@ export default function PlayClient() {
     source: 'local_rule',
   });
 
+  // Zero-asset WebAudio ambience: starts on first user gesture, no-op on server.
+  useEffect(() => {
+    const ambient = mountAmbient();
+    return () => ambient.dispose();
+  }, []);
+
   const onReady = useCallback((game: Game | null) => {
     gameRef.current = game;
   }, []);
@@ -54,6 +61,7 @@ export default function PlayClient() {
       seed: (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0,
     };
     gameRef.current?.castRitual(fx);
+    playCastChime();
     setCast({ line: INTENT_REPLY[intent], intent, source: 'local_rule' });
   }, []);
 

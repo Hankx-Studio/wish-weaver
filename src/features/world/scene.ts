@@ -1,36 +1,31 @@
 import * as THREE from 'three';
-import { mulberry32, type EffectEvent } from '@/lib/effects/types';
+import { type EffectEvent } from '@/lib/effects/types';
 import { Fireflies, ParticleField, makeSoftDotTexture } from './particles';
 import { buildTraveler, walkPose, type TravelerRig } from './traveler';
 import {
-  STONES,
-  WORLD3D,
   emptyMoveInput,
   initialBody3,
   stepBody3,
   type BodyState,
   type MoveInput,
 } from './physics';
+import {
+  buildClouds,
+  buildMountains,
+  buildSkyDome,
+  makeToonRamp,
+  setupLightsAndFog,
+  updateClouds,
+} from './world/sky';
+import { buildFlowers, buildGrass, buildGround, buildStones } from './world/ground';
+import { buildArch, buildMarketStall, buildStoneLanterns, buildTrees } from './world/props';
+import { buildWisp, createWispAnimator, wispActionOffset, type WispAnimator } from './world/wisp';
 
 // Screen-space input from keyboard/touch. iz=-1 means "away from camera".
 export interface ScreenInput {
   ix: number;
   iz: number;
   jumpPressed: boolean;
-}
-
-const SKY_TOP = new THREE.Color(0x6ea8dd);
-const SKY_BOTTOM = new THREE.Color(0xf3cd94);
-const FOG_COLOR = new THREE.Color(0xe8d3ae);
-
-function makeToonRamp(steps = 4): THREE.DataTexture {
-  const data = new Uint8Array(steps);
-  for (let i = 0; i < steps; i++) data[i] = Math.round((i / (steps - 1)) * 255);
-  const tex = new THREE.DataTexture(data, steps, 1, THREE.RedFormat);
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
-  tex.needsUpdate = true;
-  return tex;
 }
 
 export class Game {
@@ -57,6 +52,7 @@ export class Game {
   private camPos = new THREE.Vector3(0, 8, 20);
   private spiritAction: EffectEvent['spirit_action'] = 'idle';
   private spiritT = 99;
+  private wispAnimator: WispAnimator | null = null;
   private time = 0;
   private dragging = false;
   private lastPointer = { x: 0, y: 0 };
@@ -116,6 +112,7 @@ export class Game {
     );
     this.spiritAction = fx.spirit_action;
     this.spiritT = 0;
+    this.wispAnimator?.setAction(fx.spirit_action);
   }
 
   destroy(): void {
@@ -149,263 +146,26 @@ export class Game {
     this.particles.reducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.scene.fog = new THREE.Fog(FOG_COLOR, 80, 300);
+    setupLightsAndFog(this.scene);
 
-    const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x8a9a7b, 1.05);
-    this.scene.add(hemi);
-    // Cool fill from the opposite side so dark-cloaked shapes stay readable.
-    const fill = new THREE.DirectionalLight(0xbcd0ff, 0.55);
-    fill.position.set(-35, 24, -45);
-    this.scene.add(fill);
-    const sun = new THREE.DirectionalLight(0xffe3b3, 2.6);
-    sun.position.set(40, 60, 20);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -70;
-    sun.shadow.camera.right = 70;
-    sun.shadow.camera.top = 70;
-    sun.shadow.camera.bottom = -70;
-    sun.shadow.camera.far = 200;
-    sun.shadow.bias = -0.0004;
-    this.scene.add(sun);
-
-    this.buildSky();
-    this.buildGround();
-    this.buildMountains();
-    this.buildClouds();
-    this.buildArch();
-    this.buildTrees();
-    this.buildGrass();
-    this.buildFlowers();
-    this.buildStones();
+    const toon = (color: number) => this.toon(color);
+    buildSkyDome(this.scene);
+    buildGround(this.scene);
+    buildMountains(this.scene, toon);
+    const clouds = buildClouds(this.scene);
+    this.clouds = clouds.sprites;
+    this.disposables.push(clouds.texture);
+    buildArch(this.scene, toon);
+    buildTrees(this.scene, toon);
+    buildMarketStall(this.scene, toon);
+    buildStoneLanterns(this.scene, toon);
+    buildGrass(this.scene, toon);
+    buildFlowers(this.scene, toon, this.toonRamp);
+    buildStones(this.scene, toon);
     this.buildTraveler();
     this.buildWisp();
     this.scene.add(this.particles.group, this.fireflies.points);
     this.attachOrbit();
-  }
-
-  private buildSky(): void {
-    const geo = new THREE.SphereGeometry(400, 24, 16);
-    const pos = geo.getAttribute('position') as THREE.BufferAttribute;
-    const colors = new Float32Array(pos.count * 3);
-    const c = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const t = THREE.MathUtils.clamp(pos.getY(i) / 400 + 0.12, 0, 1);
-      c.copy(SKY_BOTTOM).lerp(SKY_TOP, Math.pow(t, 0.65));
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const sky = new THREE.Mesh(
-      geo,
-      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }),
-    );
-    sky.renderOrder = -10;
-    this.scene.add(sky);
-
-    const halo = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: makeSoftDotTexture(),
-        color: 0xffedb8,
-        transparent: true,
-        opacity: 0.9,
-        depthWrite: false,
-        fog: false,
-      }),
-    );
-    halo.position.set(150, 190, 60);
-    halo.scale.set(150, 150, 1);
-    this.scene.add(halo);
-  }
-
-  private buildGround(): void {
-    const geo = new THREE.CircleGeometry(WORLD3D.radius + 8, 56);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.getAttribute('position') as THREE.BufferAttribute;
-    const colors = new Float32Array(pos.count * 3);
-    const base = new THREE.Color(0x7fa35a);
-    const sunlit = new THREE.Color(0xa9c46b);
-    const c = new THREE.Color();
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const z = pos.getZ(i);
-      const n = 0.5 + 0.5 * Math.sin(x * 0.11 + 1.7) * Math.cos(z * 0.13 - 0.6);
-      c.copy(base).lerp(sunlit, n * 0.75);
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    const ground = new THREE.Mesh(
-      geo,
-      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
-    );
-    ground.receiveShadow = true;
-    this.scene.add(ground);
-  }
-
-  private buildMountains(): void {
-    const rand = mulberry32(31);
-    const mat = this.toon(0x7e94ac);
-    for (let i = 0; i < 9; i++) {
-      const a = (i / 9) * Math.PI * 2 + rand() * 0.4;
-      const r = 150 + rand() * 60;
-      const h = 40 + rand() * 45;
-      const m = new THREE.Mesh(new THREE.ConeGeometry(28 + rand() * 22, h, 5), mat);
-      m.position.set(Math.cos(a) * r, h / 2 - 4, Math.sin(a) * r);
-      m.rotation.y = rand() * Math.PI;
-      this.scene.add(m);
-    }
-  }
-
-  private buildClouds(): void {
-    const tex = makeSoftDotTexture();
-    this.disposables.push(tex);
-    const rand = mulberry32(97);
-    for (let i = 0; i < 8; i++) {
-      const mat = new THREE.SpriteMaterial({
-        map: tex,
-        color: 0xfff6e8,
-        transparent: true,
-        opacity: 0.75 + rand() * 0.2,
-        depthWrite: false,
-      });
-      const s = new THREE.Sprite(mat);
-      const a = rand() * Math.PI * 2;
-      const r = 60 + rand() * 90;
-      s.position.set(Math.cos(a) * r, 26 + rand() * 22, Math.sin(a) * r);
-      const w = 30 + rand() * 30;
-      s.scale.set(w, w * 0.42, 1);
-      this.clouds.push(s);
-      this.scene.add(s);
-    }
-  }
-
-  private buildArch(): void {
-    const mat = this.toon(0x9a958a);
-    const arch = new THREE.Group();
-    const top = new THREE.Mesh(new THREE.TorusGeometry(4, 0.9, 8, 14, Math.PI), mat);
-    top.position.y = 5;
-    const legL = new THREE.Mesh(new THREE.BoxGeometry(1.8, 5, 1.8), mat);
-    legL.position.set(-4, 2.5, 0);
-    const legR = legL.clone();
-    legR.position.x = 4;
-    arch.add(top, legL, legR);
-    arch.position.set(18, 0, -30);
-    arch.rotation.y = 0.5;
-    arch.traverse((o: THREE.Object3D) => {
-      if ((o as THREE.Mesh).isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-      }
-    });
-    this.scene.add(arch);
-  }
-
-  private buildTrees(): void {
-    const rand = mulberry32(53);
-    const trunkMat = this.toon(0x7a5c42);
-    const leafMats = [0x74a75e, 0x86b968, 0x67995a].map((c) => this.toon(c));
-    const spots: Array<[number, number]> = [[-24, -6], [26, 10], [-8, -34], [34, -22], [-34, 20]];
-    for (const [x, z] of spots) {
-      const tree = new THREE.Group();
-      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 2.6, 6), trunkMat);
-      trunk.position.y = 1.3;
-      tree.add(trunk);
-      const puffs = 2 + Math.floor(rand() * 2);
-      for (let i = 0; i < puffs; i++) {
-        const mat = leafMats[Math.floor(rand() * leafMats.length)]!;
-        const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4 + rand() * 0.9, 1), mat);
-        puff.position.set((rand() - 0.5) * 2.2, 3 + rand() * 1.6, (rand() - 0.5) * 2.2);
-        tree.add(puff);
-      }
-      tree.position.set(x, 0, z);
-      tree.traverse((o: THREE.Object3D) => {
-        if ((o as THREE.Mesh).isMesh) {
-          o.castShadow = true;
-          o.receiveShadow = true;
-        }
-      });
-      this.scene.add(tree);
-    }
-  }
-
-  private scatterOnDisc(count: number, radius: number, seed: number): Array<{ x: number; z: number; s: number; r: number }> {
-    const rand = mulberry32(seed);
-    const out: Array<{ x: number; z: number; s: number; r: number }> = [];
-    for (let i = 0; i < count; i++) {
-      const a = rand() * Math.PI * 2;
-      const d = Math.sqrt(rand()) * radius;
-      out.push({ x: Math.cos(a) * d, z: Math.sin(a) * d, s: 0.7 + rand() * 0.7, r: rand() * Math.PI * 2 });
-    }
-    return out;
-  }
-
-  private buildGrass(): void {
-    const geo = new THREE.ConeGeometry(0.13, 0.38, 5);
-    const mat = this.toon(0xffffff);
-    const spots = this.scatterOnDisc(900, 52, 11);
-    const mesh = new THREE.InstancedMesh(geo, mat, spots.length);
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-    spots.forEach((p, i) => {
-      dummy.position.set(p.x, 0.17 * p.s, p.z);
-      dummy.rotation.set(0, p.r, 0);
-      dummy.scale.setScalar(p.s);
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-      color.setHex(0x7fa85c).offsetHSL((p.r % 1) * 0.02 - 0.01, 0, (p.s - 1) * 0.1);
-      mesh.setColorAt(i, color);
-    });
-    mesh.instanceMatrix.needsUpdate = true;
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-    this.scene.add(mesh);
-  }
-
-  private buildFlowers(): void {
-    const spots = this.scatterOnDisc(150, 50, 29);
-    const stemGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.5, 5);
-    const stemMat = this.toon(0x4f7d46);
-    const stems = new THREE.InstancedMesh(stemGeo, stemMat, spots.length);
-    const headGeo = new THREE.IcosahedronGeometry(0.13, 0);
-    const headMat = new THREE.MeshToonMaterial({
-      color: 0xffffff,
-      gradientMap: this.toonRamp,
-      emissive: 0x554422,
-      emissiveIntensity: 0.7,
-    });
-    const heads = new THREE.InstancedMesh(headGeo, headMat, spots.length);
-    const dummy = new THREE.Object3D();
-    const color = new THREE.Color();
-    const palette = [0xffb3d9, 0x9ad9ff, 0xffd97a];
-    spots.forEach((p, i) => {
-      dummy.position.set(p.x, 0.25 * p.s, p.z);
-      dummy.rotation.set(0, p.r, 0);
-      dummy.scale.setScalar(p.s);
-      dummy.updateMatrix();
-      stems.setMatrixAt(i, dummy.matrix);
-      dummy.position.y = 0.52 * p.s;
-      dummy.updateMatrix();
-      heads.setMatrixAt(i, dummy.matrix);
-      color.setHex(palette[i % palette.length]!);
-      heads.setColorAt(i, color);
-    });
-    stems.instanceMatrix.needsUpdate = true;
-    heads.instanceMatrix.needsUpdate = true;
-    if (heads.instanceColor) heads.instanceColor.needsUpdate = true;
-    this.scene.add(stems, heads);
-  }
-
-  private buildStones(): void {
-    const mat = this.toon(0x8d8a80);
-    for (const st of STONES) {
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(st.r, st.r * 1.15, 1.2, 7), mat);
-      m.position.set(st.x, st.y - 0.6, st.z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      this.scene.add(m);
-    }
   }
 
   private buildTraveler(): void {
@@ -415,30 +175,10 @@ export class Game {
   }
 
   private buildWisp(): void {
-    const core = new THREE.Mesh(
-      new THREE.SphereGeometry(0.32, 14, 12),
-      new THREE.MeshBasicMaterial({ color: 0xfffdf4 }),
-    );
-    const glowTex = makeSoftDotTexture();
-    this.disposables.push(glowTex);
-    const glow = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: glowTex,
-        color: 0xffe9b8,
-        transparent: true,
-        opacity: 0.85,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-      }),
-    );
-    glow.scale.set(2.4, 2.4, 1);
-    const eyeGeo = new THREE.SphereGeometry(0.045, 8, 8);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x4a4438 });
-    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeL.position.set(-0.11, 0.05, 0.29);
-    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeR.position.set(0.11, 0.05, 0.29);
-    this.wisp.add(core, glow, eyeL, eyeR, this.wispLight);
+    const rig = buildWisp(this.wispLight);
+    this.disposables.push(rig.texture);
+    this.wispAnimator = createWispAnimator(rig);
+    this.wisp = rig.group;
     this.scene.add(this.wisp);
   }
 
@@ -486,10 +226,7 @@ export class Game {
     this.updateWisp(dt);
     this.particles.update(dt, this.time);
     this.fireflies.update(this.time);
-    for (const [i, cloud] of this.clouds.entries()) {
-      cloud.position.x += dt * (0.3 + (i % 3) * 0.15);
-      if (cloud.position.x > 160) cloud.position.x = -160;
-    }
+    updateClouds(this.clouds, dt);
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -586,16 +323,8 @@ export class Game {
     );
     this.wisp.position.lerp(target, Math.min(1, dt * 3.2));
 
-    let dy = 0;
-    let dx = 0;
-    let scale = 1;
-    const t = this.spiritT;
-    if (t < 1.4) {
-      if (this.spiritAction === 'nod') dy = -Math.abs(Math.sin(t * 9)) * 0.25;
-      else if (this.spiritAction === 'bounce') dy = Math.abs(Math.sin(t * 9)) * 0.8;
-      else if (this.spiritAction === 'wave') dx = Math.sin(t * 12) * 0.3;
-      else if (this.spiritAction === 'curl') scale = 0.72;
-    }
+    this.wispAnimator?.update(dt, this.time);
+    const { dx, dy, scale } = wispActionOffset(this.spiritAction, this.spiritT);
     this.wisp.position.y += dy;
     this.wisp.position.x += dx;
     this.wisp.scale.setScalar(scale);
