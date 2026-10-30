@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-// Upgraded companion spirit: a glowing cream droplet with a leaf sprout,
-// closed happy eyes (^ ^), blush cheeks, and tiny nub arms. Original
+// Upgraded companion spirit: a glowing cream droplet with big dark oval
+// eyes, glints, blush cheeks, and tiny nub arms. Original
 // procedural design matching the turnaround refs.
 //
 // Structure: outer group (feet/center origin, faces +Z) owns userData.velocity
@@ -28,17 +28,14 @@ const CREAM = 0xfff3cf;
 const GLOW_GOLD = 0xffdf9e;
 const DARK = 0x4a4438;
 const BLUSH_PINK = 0xf0a0a8;
-const LEAF_GREEN = 0x74a75e;
-const STEM_GREEN = 0x5d8a4a;
 const SPARK_COUNT = 10;
 
 // Shared geometries / materials across all spirit instances (modest draws).
 let teardropGeo: THREE.LatheGeometry | null = null;
 let nubGeo: THREE.CapsuleGeometry | null = null;
-let eyeArcGeo: THREE.TorusGeometry | null = null;
+let eyeDiscGeo: THREE.SphereGeometry | null = null;
+let eyeGlintGeo: THREE.SphereGeometry | null = null;
 let blushGeo: THREE.SphereGeometry | null = null;
-let stemGeo: THREE.CylinderGeometry | null = null;
-let leafGeo: THREE.SphereGeometry | null = null;
 let tailGeo: THREE.ConeGeometry | null = null;
 let sparkGeo: THREE.OctahedronGeometry | null = null;
 
@@ -73,9 +70,8 @@ interface SpiritMats {
   halo: THREE.MeshBasicMaterial;
   arm: THREE.MeshToonMaterial;
   eye: THREE.MeshBasicMaterial;
+  glint: THREE.MeshBasicMaterial;
   blush: THREE.MeshBasicMaterial;
-  leaf: THREE.MeshToonMaterial;
-  stem: THREE.MeshToonMaterial;
   spark: THREE.MeshBasicMaterial;
 }
 
@@ -113,17 +109,8 @@ function getMats(): SpiritMats {
         emissiveIntensity: 0.4,
       }),
       eye: new THREE.MeshBasicMaterial({ color: DARK }),
+      glint: new THREE.MeshBasicMaterial({ color: 0xffffff }),
       blush: new THREE.MeshBasicMaterial({ color: BLUSH_PINK, transparent: true, opacity: 0.85 }),
-      leaf: new THREE.MeshToonMaterial({
-        color: LEAF_GREEN,
-        gradientMap: spiritRamp(),
-        emissive: LEAF_GREEN,
-        emissiveIntensity: 0.15,
-      }),
-      stem: new THREE.MeshToonMaterial({
-        color: STEM_GREEN,
-        gradientMap: spiritRamp(),
-      }),
       spark: new THREE.MeshBasicMaterial({
         transparent: true,
         depthWrite: false,
@@ -145,32 +132,6 @@ function makeNubArm(side: 1 | -1, mat: THREE.Material): THREE.Group {
   pivot.add(nub);
   pivot.rotation.z = side * 0.45;
   return pivot;
-}
-
-function makeSprout(m: SpiritMats): THREE.Group {
-  if (!stemGeo) stemGeo = new THREE.CylinderGeometry(0.022, 0.03, 0.18, 6);
-  if (!leafGeo) {
-    leafGeo = new THREE.SphereGeometry(0.085, 8, 6);
-    leafGeo.scale(1, 0.35, 1.6);
-  }
-  const sprout = new THREE.Group();
-  sprout.name = 'sprout';
-  // Lean off the tip so the droplet silhouette stays clean.
-  sprout.position.set(0.07, 0.62, 0);
-  sprout.rotation.z = -0.28;
-  const stem = new THREE.Mesh(stemGeo, m.stem);
-  stem.position.y = 0.09;
-  const leafL = new THREE.Mesh(leafGeo, m.leaf);
-  leafL.name = 'leafL';
-  leafL.position.set(-0.09, 0.19, 0);
-  leafL.rotation.set(0.1, 0.5, 0.5);
-  const leafR = new THREE.Mesh(leafGeo, m.leaf);
-  leafR.name = 'leafR';
-  leafR.position.set(0.09, 0.22, 0);
-  leafR.rotation.set(-0.1, -0.4, -0.45);
-  leafR.scale.setScalar(1.15);
-  sprout.add(stem, leafL, leafR);
-  return sprout;
 }
 
 export function createSpirit(): THREE.Group {
@@ -195,19 +156,25 @@ export function createSpirit(): THREE.Group {
   halo.scale.setScalar(1.26);
   inner.add(body, shell, halo);
 
-  // Closed happy eyes: upward-bulging arcs (upper half of a torus ring).
-  if (!eyeArcGeo) {
-    const arc = Math.PI * 0.9;
-    eyeArcGeo = new THREE.TorusGeometry(0.05, 0.013, 8, 14, arc);
-    eyeArcGeo.rotateZ((Math.PI - arc) / 2);
+  // Big dark oval eyes with glints (matches turnaround ref 03).
+  if (!eyeDiscGeo) {
+    eyeDiscGeo = new THREE.SphereGeometry(0.075, 14, 12);
+    eyeDiscGeo.scale(1, 1.3, 0.45);
   }
-  const eyeL = new THREE.Mesh(eyeArcGeo, m.eye);
+  if (!eyeGlintGeo) eyeGlintGeo = new THREE.SphereGeometry(0.022, 8, 8);
+  const eyeL = new THREE.Mesh(eyeDiscGeo, m.eye);
   eyeL.name = 'eyeL';
-  eyeL.position.set(-0.115, 0.09, 0.3);
-  const eyeR = new THREE.Mesh(eyeArcGeo, m.eye);
+  eyeL.position.set(-0.13, 0.1, 0.29);
+  const eyeR = new THREE.Mesh(eyeDiscGeo, m.eye);
   eyeR.name = 'eyeR';
-  eyeR.position.set(0.115, 0.09, 0.3);
-  inner.add(eyeL, eyeR);
+  eyeR.position.set(0.13, 0.1, 0.29);
+  const glintL = new THREE.Mesh(eyeGlintGeo, m.glint);
+  glintL.name = 'glintL';
+  glintL.position.set(-0.155, 0.135, 0.325);
+  const glintR = new THREE.Mesh(eyeGlintGeo, m.glint);
+  glintR.name = 'glintR';
+  glintR.position.set(0.105, 0.135, 0.325);
+  inner.add(eyeL, eyeR, glintL, glintR);
 
   if (!blushGeo) {
     blushGeo = new THREE.SphereGeometry(0.05, 8, 8);
@@ -222,7 +189,6 @@ export function createSpirit(): THREE.Group {
   inner.add(blushL, blushR);
 
   inner.add(makeNubArm(-1, m.arm), makeNubArm(1, m.arm));
-  inner.add(makeSprout(m));
 
   // Tail nub at the back-bottom (see turnaround side/back views).
   if (!tailGeo) tailGeo = new THREE.ConeGeometry(0.07, 0.14, 8);
@@ -260,7 +226,7 @@ function clamp(v: number, lo: number, hi: number): number {
 }
 
 // Idle animation: bob + breathing squash, tilt leaned into userData.velocity,
-// arm/sprout sway, eye blink via scale, orbiting sparkles.
+// arm sway, eye blink via scale, orbiting sparkles.
 // Pure w.r.t. the group (no allocation); never throws on an empty group.
 export function updateSpirit(g: THREE.Group, t: number, dt: number): void {
   const time = typeof t === 'number' ? t : 0;
@@ -297,13 +263,6 @@ export function updateSpirit(g: THREE.Group, t: number, dt: number): void {
   if (armL) armL.rotation.z = -0.45 - 0.12 * Math.sin(time * 2.2 + 0.6);
   const armR = g.getObjectByName('armR');
   if (armR) armR.rotation.z = 0.45 + 0.12 * Math.sin(time * 2.2 + 0.6);
-
-  // Sprout wobble.
-  const sprout = g.getObjectByName('sprout');
-  if (sprout) {
-    sprout.rotation.z = -0.28 + Math.sin(time * 2.6) * 0.06;
-    sprout.rotation.x = Math.sin(time * 1.9) * 0.05;
-  }
 
   // Sparkle ring orbit (single instanced draw call).
   const sparkles = g.getObjectByName('sparkles') as THREE.InstancedMesh | undefined;

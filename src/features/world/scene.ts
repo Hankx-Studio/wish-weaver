@@ -18,7 +18,7 @@ import {
   updateClouds,
 } from './world/sky';
 import { buildFlowers, buildGrass, buildGround, buildStones } from './world/ground';
-import { buildArch, buildMarketStall, buildStoneLanterns, buildTrees } from './world/props';
+import { buildArch, buildStoneLanterns, buildTrees } from './world/props';
 import { wispActionOffset } from './world/wisp';
 import { buildCast, type Cast } from './world/cast';
 import { createHeroM } from './world/actors/hero-m';
@@ -170,7 +170,8 @@ export class Game {
     this.disposables.push(clouds.texture);
     buildArch(this.scene, toon);
     buildTrees(this.scene, toon);
-    buildMarketStall(this.scene, toon);
+    // (Legacy roadside stall retired: shop-center in cast.ts is the shop now,
+    // and the stall sat in the spawn-camera path.)
     buildStoneLanterns(this.scene, toon);
     buildGrass(this.scene, toon);
     buildFlowers(this.scene, toon, this.toonRamp);

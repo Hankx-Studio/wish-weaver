@@ -206,7 +206,7 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
               gameRef.current?.setInput({ jumpPressed: true });
             }}
           >
-            ⤒
+            ▲
           </button>
         </div>
       </div>

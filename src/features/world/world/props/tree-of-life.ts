@@ -43,7 +43,8 @@ const _dummy = new THREE.Object3D();
 const _color = new THREE.Color();
 const _up = new THREE.Vector3(0, 1, 0);
 
-const PUFF_PINKS = [0xf2a7c3, 0xef8fb5, 0xf7c1d5, 0xffd9a0, 0xf7b267, 0xffe3b8];
+// All-pink cherry canopy per turnaround ref 04 (warm light comes from lanterns).
+const PUFF_PINKS = [0xf2a7c3, 0xef8fb5, 0xf7c1d5, 0xf9d3e3, 0xe98bb0, 0xf7c1d5];
 
 interface PuffSpot {
   x: number;

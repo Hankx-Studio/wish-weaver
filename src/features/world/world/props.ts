@@ -129,7 +129,8 @@ const TREE_SPOTS: Array<[number, number]> = [
   [34, -22],
   [-34, 20],
 ];
-const BLOSSOM_SPOT: [number, number] = [-7, 15];
+// South-east of spawn: was (-7,15), where its crown blocked the spawn camera.
+const BLOSSOM_SPOT: [number, number] = [20, 16];
 const LEAF_GREENS = [0x74a75e, 0x86b968, 0x67995a];
 const BLOSSOM_PINKS = [0xf2a7c3, 0xef8fb5, 0xf7c1d5];
 

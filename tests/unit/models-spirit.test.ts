@@ -13,9 +13,8 @@ const NAMED_PARTS = [
   'blushR',
   'armL',
   'armR',
-  'sprout',
-  'leafL',
-  'leafR',
+  'glintL',
+  'glintR',
   'tail',
   'sparkles',
 ];
@@ -47,7 +46,7 @@ describe('createSpirit', () => {
     // Chubby droplet ~0.7 wide; sparkle ring stays inside ~1.2.
     expect(size.x).toBeGreaterThan(0.6);
     expect(size.x).toBeLessThan(1.4);
-    // Body ~1.1 tall + sprout on top.
+    // Droplet body ~1.1 tall (halo shell extends it).
     expect(size.y).toBeGreaterThan(1.0);
     expect(size.y).toBeLessThan(1.8);
     expect(size.z).toBeGreaterThan(0.5);
