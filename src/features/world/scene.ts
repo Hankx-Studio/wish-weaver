@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mulberry32, type EffectEvent } from '@/lib/effects/types';
 import { Fireflies, ParticleField, makeSoftDotTexture } from './particles';
+import { buildTraveler, walkPose, type TravelerRig } from './traveler';
 import {
   STONES,
   WORLD3D,
@@ -40,6 +41,10 @@ export class Game {
   private clock = new THREE.Clock();
   private toonRamp = makeToonRamp();
   private player = new THREE.Group();
+  private rig: TravelerRig | null = null;
+  private walkPhase = 0;
+  private squash = 0;
+  private wasGround = true;
   private wisp = new THREE.Group();
   private wispLight: THREE.PointLight;
   private particles: ParticleField;
@@ -402,29 +407,8 @@ export class Game {
   }
 
   private buildTraveler(): void {
-    const cloak = this.toon(0x2e3a44);
-    const skin = this.toon(0xf2c9a0);
-    const gold = this.toon(0xd9b36a);
-    const dark = this.toon(0x2b2620);
-
-    const body = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.5, 10), cloak);
-    body.position.y = 0.9;
-    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), cloak);
-    hood.position.set(0, 1.82, -0.06);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), skin);
-    head.position.set(0, 1.78, 0.1);
-    const eyeGeo = new THREE.SphereGeometry(0.045, 8, 8);
-    const eyeL = new THREE.Mesh(eyeGeo, dark);
-    eyeL.position.set(-0.11, 1.8, 0.37);
-    const eyeR = new THREE.Mesh(eyeGeo, dark);
-    eyeR.position.set(0.11, 1.8, 0.37);
-    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 14), gold);
-    scarf.position.y = 1.42;
-    scarf.rotation.x = Math.PI / 2;
-    this.player.add(body, hood, head, eyeL, eyeR, scarf);
-    this.player.traverse((o: THREE.Object3D) => {
-      if ((o as THREE.Mesh).isMesh) o.castShadow = true;
-    });
+    this.rig = buildTraveler((color) => this.toon(color));
+    this.player.add(this.rig.group);
     this.scene.add(this.player);
   }
 
@@ -496,7 +480,7 @@ export class Game {
     this.body = stepBody3(this.body, this.move, dt);
     this.move.jumpPressed = false;
     this.updateCamera(dt);
-    this.updatePlayer();
+    this.updatePlayer(dt);
     this.updateWisp(dt);
     this.particles.update(dt, this.time);
     this.fireflies.update(this.time);
@@ -519,15 +503,67 @@ export class Game {
     this.camera.lookAt(this.body.x, this.body.y + 2, this.body.z);
   }
 
-  private updatePlayer(): void {
+  private updatePlayer(dt: number): void {
     const b = this.body;
-    const moving = Math.hypot(b.vx, b.vz) > 0.5;
-    const bob = b.onGround
-      ? moving
-        ? Math.abs(Math.sin(this.time * 11)) * 0.09
-        : Math.sin(this.time * 2.4) * 0.02
-      : 0;
-    this.player.position.set(b.x, b.y + bob, b.z);
+    const rig = this.rig;
+    const speed = Math.hypot(b.vx, b.vz);
+    const moving = speed > 0.5 && b.onGround;
+
+    if (!this.wasGround && b.onGround) this.squash = 0.22;
+    this.wasGround = b.onGround;
+    this.squash *= Math.exp(-9 * dt);
+
+    if (rig) {
+      if (!b.onGround) {
+        // Airborne: legs tucked, arms out.
+        rig.legL.rotation.x = -0.55;
+        rig.legR.rotation.x = 0.4;
+        rig.armL.rotation.set(-0.4, 0, 0.7);
+        rig.armR.rotation.set(-0.4, 0, -0.7);
+        rig.body.position.y = 0;
+        rig.body.scale.set(1.02, 0.98, 1.02);
+      } else if (moving) {
+        this.walkPhase += dt * (4 + speed * 1.1);
+        const p = walkPose(this.walkPhase);
+        rig.legL.rotation.x = p.legL;
+        rig.legR.rotation.x = p.legR;
+        rig.armL.rotation.set(p.armL, 0, 0.08);
+        rig.armR.rotation.set(p.armR, 0, -0.08);
+        rig.body.position.y = p.bob;
+        rig.body.scale.set(1, 1, 1);
+      } else {
+        // Idle: ease to neutral + breathe.
+        const k = Math.min(1, dt * 8);
+        for (const [joint, target] of [
+          [rig.legL, 0],
+          [rig.legR, 0],
+          [rig.armL, 0],
+          [rig.armR, 0],
+        ] as const) {
+          joint.rotation.x += (target - joint.rotation.x) * k;
+          joint.rotation.z += (0 - joint.rotation.z) * k;
+        }
+        const breath = 1 + Math.sin(this.time * 2.4) * 0.015;
+        rig.body.scale.set(2 - breath, breath, 2 - breath);
+        rig.body.position.y = Math.sin(this.time * 2.4) * 0.02;
+      }
+      if (this.squash > 0.003) {
+        const s = this.squash;
+        rig.body.scale.set(1 + s * 0.6, 1 - s, 1 + s * 0.6);
+      }
+      // Blink.
+      const blink = this.time % 3.7 < 0.12 ? 0.12 : 1;
+      rig.eyeL.scale.y = blink;
+      rig.eyeR.scale.y = blink;
+      // Scarf flutter: traveling wave, stronger when moving.
+      const amp = 0.18 + (moving ? 0.3 : 0) + (!b.onGround ? 0.35 : 0);
+      rig.scarf.forEach((seg, i) => {
+        seg.rotation.x = -0.35 - i * 0.12 + Math.sin(this.time * 7 - i * 1.1) * amp;
+        seg.rotation.y = Math.sin(this.time * 5.3 - i * 0.9) * amp * 0.5;
+      });
+    }
+
+    this.player.position.set(b.x, b.y, b.z);
     // Smooth-turn toward the physics facing.
     let d = b.facing - this.player.rotation.y;
     while (d > Math.PI) d -= Math.PI * 2;
