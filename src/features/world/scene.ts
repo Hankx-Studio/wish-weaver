@@ -19,7 +19,11 @@ import {
 } from './world/sky';
 import { buildFlowers, buildGrass, buildGround, buildStones } from './world/ground';
 import { buildArch, buildMarketStall, buildStoneLanterns, buildTrees } from './world/props';
-import { buildWisp, createWispAnimator, wispActionOffset, type WispAnimator } from './world/wisp';
+import { wispActionOffset } from './world/wisp';
+import { buildCast, type Cast } from './world/cast';
+import { createHeroM } from './world/actors/hero-m';
+import { createHeroF } from './world/actors/hero-f';
+import { createSpirit, updateSpirit } from './world/actors/spirit';
 
 // Screen-space input from keyboard/touch. iz=-1 means "away from camera".
 export interface ScreenInput {
@@ -52,7 +56,9 @@ export class Game {
   private camPos = new THREE.Vector3(0, 8, 20);
   private spiritAction: EffectEvent['spirit_action'] = 'idle';
   private spiritT = 99;
-  private wispAnimator: WispAnimator | null = null;
+  private cast: Cast | null = null;
+  private heroGender: 'm' | 'f' = 'm';
+  private wispLast = new THREE.Vector3();
   private time = 0;
   private dragging = false;
   private lastPointer = { x: 0, y: 0 };
@@ -112,7 +118,14 @@ export class Game {
     );
     this.spiritAction = fx.spirit_action;
     this.spiritT = 0;
-    this.wispAnimator?.setAction(fx.spirit_action);
+  }
+
+  /** Swap the playable hero model (M/F). Called by the H key. */
+  toggleHero(): void {
+    this.heroGender = this.heroGender === 'm' ? 'f' : 'm';
+    this.player.clear();
+    this.rig = this.buildHeroRig();
+    this.player.add(this.rig.group);
   }
 
   destroy(): void {
@@ -164,21 +177,57 @@ export class Game {
     buildStones(this.scene, toon);
     this.buildTraveler();
     this.buildWisp();
+    this.cast = buildCast(this.scene, toon);
     this.scene.add(this.particles.group, this.fireflies.points);
     this.attachOrbit();
   }
 
   private buildTraveler(): void {
-    this.rig = buildTraveler((color) => this.toon(color));
+    this.rig = this.buildHeroRig();
     this.player.add(this.rig.group);
     this.scene.add(this.player);
   }
 
+  /** Player visual = detailed hero model; falls back to the legacy traveler. */
+  private buildHeroRig(): TravelerRig {
+    const toon = (color: number) => this.toon(color);
+    const hero = this.heroGender === 'm' ? createHeroM(toon) : createHeroF(toon);
+    const get = (name: string) => hero.getObjectByName(name);
+    const legL = get('legL');
+    const legR = get('legR');
+    const armL = get('armL');
+    const armR = get('armR');
+    const s0 = get('scarf0');
+    const s1 = get('scarf1');
+    const s2 = get('scarf2');
+    const eyeL = get('eyeL');
+    const eyeR = get('eyeR');
+    if (!legL || !legR || !armL || !armR || !s0 || !s1 || !s2 || !eyeL || !eyeR) {
+      return buildTraveler(toon);
+    }
+    // Outer group keeps feet origin + yaw; inner body takes bob/squash.
+    const group = new THREE.Group();
+    const body = new THREE.Group();
+    body.add(hero);
+    group.add(body);
+    return {
+      group,
+      body,
+      legL: legL as THREE.Group,
+      legR: legR as THREE.Group,
+      armL: armL as THREE.Group,
+      armR: armR as THREE.Group,
+      scarf: [s0 as THREE.Group, s1 as THREE.Group, s2 as THREE.Group],
+      eyeL: eyeL as THREE.Mesh,
+      eyeR: eyeR as THREE.Mesh,
+    };
+  }
+
   private buildWisp(): void {
-    const rig = buildWisp(this.wispLight);
-    this.disposables.push(rig.texture);
-    this.wispAnimator = createWispAnimator(rig);
-    this.wisp = rig.group;
+    this.wisp = createSpirit();
+    this.wispLight.position.set(0, 0.6, 0);
+    this.wisp.add(this.wispLight);
+    this.wispLast.set(0, 2.4, 6);
     this.scene.add(this.wisp);
   }
 
@@ -224,6 +273,7 @@ export class Game {
     this.updateCamera(dt);
     this.updatePlayer(dt);
     this.updateWisp(dt);
+    this.cast?.update(this.time, dt, this.player.position);
     this.particles.update(dt, this.time);
     this.fireflies.update(this.time);
     updateClouds(this.clouds, dt);
@@ -323,7 +373,13 @@ export class Game {
     );
     this.wisp.position.lerp(target, Math.min(1, dt * 3.2));
 
-    this.wispAnimator?.update(dt, this.time);
+    // Feed velocity into the spirit so it tilts into motion.
+    if (dt > 0) {
+      const vel = this.wisp.position.clone().sub(this.wispLast).divideScalar(dt);
+      this.wisp.userData.velocity = vel;
+    }
+    this.wispLast.copy(this.wisp.position);
+    updateSpirit(this.wisp, this.time, dt);
     const { dx, dy, scale } = wispActionOffset(this.spiritAction, this.spiritT);
     this.wisp.position.y += dy;
     this.wisp.position.x += dx;

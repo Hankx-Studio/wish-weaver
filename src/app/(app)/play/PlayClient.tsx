@@ -97,7 +97,7 @@ export default function PlayClient() {
         <RitualBar onCast={onCast} />
       </div>
       <p style={{ marginTop: '0.9rem', fontSize: '0.82rem', color: '#8a8471', lineHeight: 1.6 }}>
-        Move: WASD / arrows / left stick · Jump: Space · Drag to look around · Spells
+        Move: WASD / arrows / left stick · Jump: Space · H: swap hero · Drag to look around · Spells
         play instantly on this device; nothing is sent anywhere yet.
       </p>
     </div>

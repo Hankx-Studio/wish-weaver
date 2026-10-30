@@ -59,6 +59,7 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
         e.preventDefault();
       }
       if (!e.repeat && e.key === ' ') gameRef.current?.setInput({ jumpPressed: true });
+      if (!e.repeat && (e.key === 'h' || e.key === 'H')) gameRef.current?.toggleHero();
       keys.add(e.key);
       push();
     };
