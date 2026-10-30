@@ -5,6 +5,10 @@ extends CharacterBody3D
 @export var gravity := 22.0
 
 
+func _ready() -> void:
+	add_to_group("player")
+
+
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity.y -= gravity * delta

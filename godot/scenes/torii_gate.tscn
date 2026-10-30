@@ -1,0 +1,367 @@
+[gd_scene load_steps=21 format=3]
+
+; Red torii gate + stone lantern path. Feet origin, gate faces +Z.
+; Leader places the ToriiGate root at (18, 0, -30) with yaw 0.
+;
+; LanternPath children are stored torii-relative (world minus (18, -30)) so
+; they land on the three.js props.ts spots (4,-2) (7,-13) (13,-21) plus three
+; mirrored partners flanking the spawn-to-arch path:
+;   L0 (-14, 28)    -> world (4, -2)      L3 (-11.7, 29.2) -> world (6.3, -0.8)
+;   L1 (-11, 17)    -> world (7, -13)     L4 (-8.7, 18.2)  -> world (9.3, -11.8)
+;   L2 (-5, 9)      -> world (13, -21)    L5 (-2.7, 10.2)  -> world (15.3, -19.8)
+
+[sub_resource type="StandardMaterial3D" id="mat_red"]
+albedo_color = Color(0.784, 0.243, 0.18, 1)
+roughness = 0.55
+
+[sub_resource type="StandardMaterial3D" id="mat_dark"]
+albedo_color = Color(0.18, 0.165, 0.15, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="mat_darkwood"]
+albedo_color = Color(0.373, 0.255, 0.157, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="mat_stone"]
+albedo_color = Color(0.561, 0.545, 0.51, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_core"]
+albedo_color = Color(1, 0.831, 0.537, 1)
+emission_enabled = true
+emission = Color(1, 0.62, 0.28, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="BoxMesh" id="m_base"]
+material = SubResource("mat_stone")
+size = Vector3(1, 0.3, 1)
+
+[sub_resource type="CylinderMesh" id="m_pillar"]
+material = SubResource("mat_red")
+top_radius = 0.28
+bottom_radius = 0.34
+height = 5.2
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="m_lintel"]
+material = SubResource("mat_red")
+size = Vector3(7.4, 0.5, 0.75)
+
+[sub_resource type="BoxMesh" id="m_lintel_end"]
+material = SubResource("mat_red")
+size = Vector3(1.7, 0.42, 0.65)
+
+[sub_resource type="BoxMesh" id="m_cap"]
+material = SubResource("mat_dark")
+size = Vector3(7.6, 0.12, 0.85)
+
+[sub_resource type="BoxMesh" id="m_cap_end"]
+material = SubResource("mat_dark")
+size = Vector3(1.9, 0.1, 0.75)
+
+[sub_resource type="BoxMesh" id="m_nuki"]
+material = SubResource("mat_red")
+size = Vector3(5.9, 0.35, 0.45)
+
+[sub_resource type="BoxMesh" id="m_plaque"]
+material = SubResource("mat_darkwood")
+size = Vector3(0.55, 0.75, 0.14)
+
+[sub_resource type="BoxMesh" id="m_lbase"]
+material = SubResource("mat_stone")
+size = Vector3(0.7, 0.25, 0.7)
+
+[sub_resource type="CylinderMesh" id="m_lshaft"]
+material = SubResource("mat_stone")
+top_radius = 0.16
+bottom_radius = 0.2
+height = 0.9
+radial_segments = 6
+
+[sub_resource type="BoxMesh" id="m_lsill"]
+material = SubResource("mat_stone")
+size = Vector3(0.6, 0.12, 0.6)
+
+[sub_resource type="BoxMesh" id="m_lcore"]
+material = SubResource("mat_core")
+size = Vector3(0.44, 0.4, 0.44)
+
+[sub_resource type="BoxMesh" id="m_llid"]
+material = SubResource("mat_stone")
+size = Vector3(0.58, 0.1, 0.58)
+
+[sub_resource type="CylinderMesh" id="m_lcap"]
+material = SubResource("mat_stone")
+top_radius = 0.001
+bottom_radius = 0.55
+height = 0.4
+radial_segments = 4
+
+[sub_resource type="SphereMesh" id="m_ljewel"]
+material = SubResource("mat_stone")
+radius = 0.1
+height = 0.2
+radial_segments = 8
+rings = 4
+
+[node name="ToriiGate" type="Node3D"]
+
+[node name="BaseL" type="MeshInstance3D" parent="."]
+position = Vector3(-2.6, 0.15, 0)
+mesh = SubResource("m_base")
+
+[node name="BaseR" type="MeshInstance3D" parent="."]
+position = Vector3(2.6, 0.15, 0)
+mesh = SubResource("m_base")
+
+[node name="PillarL" type="MeshInstance3D" parent="."]
+position = Vector3(-2.6, 2.9, 0)
+rotation = Vector3(0, 0, -0.035)
+mesh = SubResource("m_pillar")
+
+[node name="PillarR" type="MeshInstance3D" parent="."]
+position = Vector3(2.6, 2.9, 0)
+rotation = Vector3(0, 0, 0.035)
+mesh = SubResource("m_pillar")
+
+[node name="Nuki" type="MeshInstance3D" parent="."]
+position = Vector3(0, 4.35, 0)
+mesh = SubResource("m_nuki")
+
+[node name="LintelCenter" type="MeshInstance3D" parent="."]
+position = Vector3(0, 5.55, 0)
+mesh = SubResource("m_lintel")
+
+[node name="LintelEndL" type="MeshInstance3D" parent="."]
+position = Vector3(-4.15, 5.78, 0)
+rotation = Vector3(0, 0, -0.16)
+mesh = SubResource("m_lintel_end")
+
+[node name="LintelEndR" type="MeshInstance3D" parent="."]
+position = Vector3(4.15, 5.78, 0)
+rotation = Vector3(0, 0, 0.16)
+mesh = SubResource("m_lintel_end")
+
+[node name="CapCenter" type="MeshInstance3D" parent="."]
+position = Vector3(0, 5.86, 0)
+mesh = SubResource("m_cap")
+
+[node name="CapEndL" type="MeshInstance3D" parent="."]
+position = Vector3(-4.2, 6.06, 0)
+rotation = Vector3(0, 0, -0.16)
+mesh = SubResource("m_cap_end")
+
+[node name="CapEndR" type="MeshInstance3D" parent="."]
+position = Vector3(4.2, 6.06, 0)
+rotation = Vector3(0, 0, 0.16)
+mesh = SubResource("m_cap_end")
+
+[node name="Plaque" type="MeshInstance3D" parent="."]
+position = Vector3(0, 4.9, 0)
+mesh = SubResource("m_plaque")
+
+[node name="LanternPath" type="Node3D" parent="."]
+
+[node name="StoneLantern0" type="Node3D" parent="LanternPath"]
+position = Vector3(-14, 0, 28)
+rotation = Vector3(0, 0.3, 0)
+
+[node name="Base" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+position = Vector3(0, 0.125, 0)
+mesh = SubResource("m_lbase")
+
+[node name="Shaft" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("m_lshaft")
+
+[node name="Sill" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("m_lsill")
+
+[node name="Core" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+cast_shadow = 0
+position = Vector3(0, 1.46, 0)
+mesh = SubResource("m_lcore")
+
+[node name="Lid" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("m_llid")
+
+[node name="Cap" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+position = Vector3(0, 1.95, 0)
+rotation = Vector3(0, 0.7853982, 0)
+mesh = SubResource("m_lcap")
+
+[node name="Jewel" type="MeshInstance3D" parent="LanternPath/StoneLantern0"]
+position = Vector3(0, 2.2, 0)
+mesh = SubResource("m_ljewel")
+
+[node name="StoneLantern1" type="Node3D" parent="LanternPath"]
+position = Vector3(-11, 0, 17)
+rotation = Vector3(0, 1.2, 0)
+
+[node name="Base" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+position = Vector3(0, 0.125, 0)
+mesh = SubResource("m_lbase")
+
+[node name="Shaft" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("m_lshaft")
+
+[node name="Sill" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("m_lsill")
+
+[node name="Core" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+cast_shadow = 0
+position = Vector3(0, 1.46, 0)
+mesh = SubResource("m_lcore")
+
+[node name="Lid" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("m_llid")
+
+[node name="Cap" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+position = Vector3(0, 1.95, 0)
+rotation = Vector3(0, 0.7853982, 0)
+mesh = SubResource("m_lcap")
+
+[node name="Jewel" type="MeshInstance3D" parent="LanternPath/StoneLantern1"]
+position = Vector3(0, 2.2, 0)
+mesh = SubResource("m_ljewel")
+
+[node name="StoneLantern2" type="Node3D" parent="LanternPath"]
+position = Vector3(-5, 0, 9)
+rotation = Vector3(0, 2.1, 0)
+
+[node name="Base" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+position = Vector3(0, 0.125, 0)
+mesh = SubResource("m_lbase")
+
+[node name="Shaft" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("m_lshaft")
+
+[node name="Sill" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("m_lsill")
+
+[node name="Core" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+cast_shadow = 0
+position = Vector3(0, 1.46, 0)
+mesh = SubResource("m_lcore")
+
+[node name="Lid" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("m_llid")
+
+[node name="Cap" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+position = Vector3(0, 1.95, 0)
+rotation = Vector3(0, 0.7853982, 0)
+mesh = SubResource("m_lcap")
+
+[node name="Jewel" type="MeshInstance3D" parent="LanternPath/StoneLantern2"]
+position = Vector3(0, 2.2, 0)
+mesh = SubResource("m_ljewel")
+
+[node name="StoneLantern3" type="Node3D" parent="LanternPath"]
+position = Vector3(-11.7, 0, 29.2)
+rotation = Vector3(0, 0.9, 0)
+
+[node name="Base" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+position = Vector3(0, 0.125, 0)
+mesh = SubResource("m_lbase")
+
+[node name="Shaft" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("m_lshaft")
+
+[node name="Sill" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("m_lsill")
+
+[node name="Core" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+cast_shadow = 0
+position = Vector3(0, 1.46, 0)
+mesh = SubResource("m_lcore")
+
+[node name="Lid" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("m_llid")
+
+[node name="Cap" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+position = Vector3(0, 1.95, 0)
+rotation = Vector3(0, 0.7853982, 0)
+mesh = SubResource("m_lcap")
+
+[node name="Jewel" type="MeshInstance3D" parent="LanternPath/StoneLantern3"]
+position = Vector3(0, 2.2, 0)
+mesh = SubResource("m_ljewel")
+
+[node name="StoneLantern4" type="Node3D" parent="LanternPath"]
+position = Vector3(-8.7, 0, 18.2)
+rotation = Vector3(0, 1.8, 0)
+
+[node name="Base" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+position = Vector3(0, 0.125, 0)
+mesh = SubResource("m_lbase")
+
+[node name="Shaft" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("m_lshaft")
+
+[node name="Sill" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("m_lsill")
+
+[node name="Core" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+cast_shadow = 0
+position = Vector3(0, 1.46, 0)
+mesh = SubResource("m_lcore")
+
+[node name="Lid" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("m_llid")
+
+[node name="Cap" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+position = Vector3(0, 1.95, 0)
+rotation = Vector3(0, 0.7853982, 0)
+mesh = SubResource("m_lcap")
+
+[node name="Jewel" type="MeshInstance3D" parent="LanternPath/StoneLantern4"]
+position = Vector3(0, 2.2, 0)
+mesh = SubResource("m_ljewel")
+
+[node name="StoneLantern5" type="Node3D" parent="LanternPath"]
+position = Vector3(-2.7, 0, 10.2)
+rotation = Vector3(0, 2.6, 0)
+
+[node name="Base" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+position = Vector3(0, 0.125, 0)
+mesh = SubResource("m_lbase")
+
+[node name="Shaft" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+position = Vector3(0, 0.7, 0)
+mesh = SubResource("m_lshaft")
+
+[node name="Sill" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+position = Vector3(0, 1.2, 0)
+mesh = SubResource("m_lsill")
+
+[node name="Core" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+cast_shadow = 0
+position = Vector3(0, 1.46, 0)
+mesh = SubResource("m_lcore")
+
+[node name="Lid" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+position = Vector3(0, 1.7, 0)
+mesh = SubResource("m_llid")
+
+[node name="Cap" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+position = Vector3(0, 1.95, 0)
+rotation = Vector3(0, 0.7853982, 0)
+mesh = SubResource("m_lcap")
+
+[node name="Jewel" type="MeshInstance3D" parent="LanternPath/StoneLantern5"]
+position = Vector3(0, 2.2, 0)
+mesh = SubResource("m_ljewel")
