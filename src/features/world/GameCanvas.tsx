@@ -1,34 +1,45 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Game } from './scene';
+import { MountGuard } from './mountGuard';
 
 // Owns the Pixi application lifecycle: create on mount, destroy on unmount.
 // Keyboard + touch input are aggregated here and pushed into the game.
 export default function GameCanvas({ onReady }: { onReady: (game: Game | null) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
+  const guardRef = useRef<MountGuard | null>(null);
+  const [bootError, setBootError] = useState<string | null>(null);
   const readyRef = useRef(onReady);
   readyRef.current = onReady;
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    let cancelled = false;
+    if (!guardRef.current) guardRef.current = new MountGuard();
+    const guard = guardRef.current;
+    const token = guard.next();
     let game: Game | null = null;
 
     Game.create(host)
       .then((g) => {
-        if (cancelled) {
+        if (!guard.isCurrent(token)) {
+          // Stale StrictMode boot: destroy the orphan without touching the
+          // live canvas (Game.destroy only removes its own canvas).
           g.destroy();
           return;
         }
         game = g;
         gameRef.current = g;
+        setBootError(null);
         readyRef.current(g);
       })
-      .catch(() => {
-        // Boot failure surfaces as an empty stage; the page shows guidance.
+      .catch((err: unknown) => {
+        if (!guard.isCurrent(token)) return;
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('[game] Pixi boot failed:', err);
+        setBootError(message || 'unknown boot failure');
       });
 
     const keys = new Set<string>();
@@ -55,7 +66,7 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
     window.addEventListener('keyup', onKeyUp);
 
     return () => {
-      cancelled = true;
+      guard.next(); // invalidate this mount's pending boot, if any
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       game?.destroy();
@@ -99,6 +110,28 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
           backgroundColor: '#d8d5cc',
         }}
       />
+      {bootError && (
+        <div
+          role="alert"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            textAlign: 'center',
+            fontSize: '0.85rem',
+            lineHeight: 1.6,
+            color: '#7a2e1d',
+            backgroundColor: '#f3e2d8',
+            borderRadius: '12px',
+          }}
+        >
+          The game canvas failed to start: {bootError}. Please screenshot this and your
+          browser console.
+        </div>
+      )}
       <div
         style={{
           position: 'absolute',

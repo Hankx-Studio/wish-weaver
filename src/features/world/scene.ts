@@ -87,8 +87,13 @@ export class Game {
     this.app.ticker.remove(this.tickFn);
     this.resizeObserver?.disconnect();
     this.particles.destroy();
+    // Only remove OUR canvas: a newer StrictMode boot may have appended its
+    // own canvas to the same container already. Never innerHTML the host.
+    const canvas = this.app.canvas as HTMLCanvasElement | undefined;
     this.app.destroy();
-    this.container.innerHTML = '';
+    if (canvas && canvas.parentElement === this.container) {
+      this.container.removeChild(canvas);
+    }
   }
 
   private groundScreenY(): number {
