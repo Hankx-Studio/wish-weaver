@@ -44,12 +44,16 @@ export function setupLightsAndFog(scene: THREE.Scene): void {
   sun.position.set(40, 60, 20);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  sun.shadow.camera.left = -70;
-  sun.shadow.camera.right = 70;
-  sun.shadow.camera.top = 70;
-  sun.shadow.camera.bottom = -70;
-  sun.shadow.camera.far = 200;
+  // Tight frustum over the play area (action lives within ±25) for crisp
+  // shadows; threejs-materials-lighting shadow-camera fit.
+  sun.shadow.camera.left = -34;
+  sun.shadow.camera.right = 34;
+  sun.shadow.camera.top = 34;
+  sun.shadow.camera.bottom = -34;
+  sun.shadow.camera.near = 20;
+  sun.shadow.camera.far = 150;
   sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.03;
   scene.add(sun);
 }
 

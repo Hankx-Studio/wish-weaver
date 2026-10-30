@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { type EffectEvent } from '@/lib/effects/types';
 import { Fireflies, ParticleField, makeSoftDotTexture } from './particles';
 import { buildTraveler, walkPose, type TravelerRig } from './traveler';
@@ -37,7 +41,8 @@ export class Game {
   private scene = new THREE.Scene();
   private camera: THREE.PerspectiveCamera;
   private container: HTMLElement;
-  private clock = new THREE.Clock();
+  private timer = new THREE.Timer();
+  private composer: EffectComposer | null = null;
   private toonRamp = makeToonRamp();
   private player = new THREE.Group();
   private rig: TravelerRig | null = null;
@@ -79,12 +84,16 @@ export class Game {
   static async create(container: HTMLElement): Promise<Game> {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // PCF soft by default since r182; PCFSoftShadowMap was removed in r186.
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
+    // Resolution budget: cap DPR at 1.5 (threejs-scene-setup).
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     container.appendChild(renderer.domElement);
     const game = new Game(renderer, container);
     game.build();
+    game.buildComposer();
     game.resize();
     game.resizeObserver = new ResizeObserver(() => game.resize());
     game.resizeObserver.observe(container);
@@ -132,6 +141,9 @@ export class Game {
     if (this.destroyed) return;
     this.destroyed = true;
     this.renderer.setAnimationLoop(null);
+    this.timer.dispose();
+    this.composer?.dispose();
+    this.composer = null;
     this.resizeObserver?.disconnect();
     this.particles.dispose();
     this.fireflies.dispose();
@@ -232,6 +244,22 @@ export class Game {
     this.scene.add(this.wisp);
   }
 
+  /** Subtle bloom for emissives only (lanterns, spirit, glints). */
+  private buildComposer(): void {
+    const composer = new EffectComposer(this.renderer);
+    composer.addPass(new RenderPass(this.scene, this.camera));
+    const bloom = new UnrealBloomPass(
+      new THREE.Vector2(1280, 800),
+      0.3, // strength
+      0.4, // radius
+      0.85, // threshold: only the brightest emissives pass
+    );
+    composer.addPass(bloom);
+    // OutputPass applies tone mapping + sRGB (required with EffectComposer).
+    composer.addPass(new OutputPass());
+    this.composer = composer;
+  }
+
   private attachOrbit(): void {
     const canvas = this.renderer.domElement;
     canvas.style.touchAction = 'none';
@@ -263,11 +291,13 @@ export class Game {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    this.composer?.setSize(w, h);
   }
 
   private tick(): void {
     if (this.destroyed) return;
-    const dt = Math.min(this.clock.getDelta(), 0.05);
+    this.timer.update();
+    const dt = Math.min(Math.max(this.timer.getDelta(), 0), 0.05);
     this.time += dt;
     this.body = stepBody3(this.body, this.move, dt);
     this.move.jumpPressed = false;
@@ -278,7 +308,8 @@ export class Game {
     this.particles.update(dt, this.time);
     this.fireflies.update(this.time);
     updateClouds(this.clouds, dt);
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   private updateCamera(dt: number): void {
