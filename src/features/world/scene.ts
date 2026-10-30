@@ -1,249 +1,566 @@
-import { Application, Container, Graphics, Texture } from 'pixi.js';
+import * as THREE from 'three';
 import { mulberry32, type EffectEvent } from '@/lib/effects/types';
-import { ParticleField } from './particles';
+import { Fireflies, ParticleField, makeSoftDotTexture } from './particles';
 import {
-  PLATFORMS,
-  WORLD,
-  emptyInput,
-  initialBody,
-  stepBody,
+  STONES,
+  WORLD3D,
+  emptyMoveInput,
+  initialBody3,
+  stepBody3,
   type BodyState,
-  type InputState,
+  type MoveInput,
 } from './physics';
 
-// Grayscale watercolor start: the world gains color as the spirit grows.
-const SKY_TOP = 0xd8d5cc;
-const SKY_BOTTOM = 0xf2efe6;
-const HILL_FAR = 0xb9beb4;
-const HILL_NEAR = 0x9aa39b;
-const GROUND = 0x7d8478;
-const GROUND_TOP = 0xa9b09f;
-const PLATFORM = 0x8a6f55;
-const PLATFORM_TOP = 0xb99a76;
+// Screen-space input from keyboard/touch. iz=-1 means "away from camera".
+export interface ScreenInput {
+  ix: number;
+  iz: number;
+  jumpPressed: boolean;
+}
+
+const SKY_TOP = new THREE.Color(0x7fb2e5);
+const SKY_BOTTOM = new THREE.Color(0xf6d9a8);
+const FOG_COLOR = new THREE.Color(0xeed9b4);
+
+function makeToonRamp(steps = 4): THREE.DataTexture {
+  const data = new Uint8Array(steps);
+  for (let i = 0; i < steps; i++) data[i] = Math.round((i / (steps - 1)) * 255);
+  const tex = new THREE.DataTexture(data, steps, 1, THREE.RedFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
 
 export class Game {
-  private app: Application;
+  private renderer: THREE.WebGLRenderer;
+  private scene = new THREE.Scene();
+  private camera: THREE.PerspectiveCamera;
   private container: HTMLElement;
-  private world = new Container();
-  private sky = new Graphics();
-  private sun = new Container();
-  private hillsFar = new Container();
-  private hillsNear = new Container();
-  private playerView = new Container();
-  private playerBody = new Graphics();
-  private spiritView = new Container();
-  private spiritBody = new Graphics();
+  private clock = new THREE.Clock();
+  private toonRamp = makeToonRamp();
+  private player = new THREE.Group();
+  private wisp = new THREE.Group();
+  private wispLight: THREE.PointLight;
   private particles: ParticleField;
-  private body: BodyState = initialBody();
-  private input: InputState = emptyInput();
-  private spiritPos = { x: 120, y: 90 };
+  private fireflies = new Fireflies();
+  private clouds: THREE.Sprite[] = [];
+  private body: BodyState = initialBody3();
+  private move: MoveInput = emptyMoveInput();
+  private camYaw = 0;
+  private camPitch = 0.42;
+  private camPos = new THREE.Vector3(0, 8, 20);
   private spiritAction: EffectEvent['spirit_action'] = 'idle';
-  private spiritActionT = 99;
-  private camX = 0;
+  private spiritT = 99;
   private time = 0;
-  private viewW = 800;
-  private viewH = 450;
+  private dragging = false;
+  private lastPointer = { x: 0, y: 0 };
   private resizeObserver: ResizeObserver | null = null;
-  private tickFn: () => void;
   private destroyed = false;
+  private disposables: Array<{ dispose(): void }> = [];
 
-  private constructor(app: Application, container: HTMLElement, dot: Texture) {
-    this.app = app;
+  private constructor(renderer: THREE.WebGLRenderer, container: HTMLElement) {
+    this.renderer = renderer;
     this.container = container;
+    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 600);
+    const dot = makeSoftDotTexture();
     this.particles = new ParticleField(dot);
-    this.tickFn = () => this.tick();
+    this.disposables.push(dot);
+    this.wispLight = new THREE.PointLight(0xffe9b8, 8, 18, 2);
   }
 
   static async create(container: HTMLElement): Promise<Game> {
-    const app = new Application();
-    await app.init({ background: SKY_BOTTOM, antialias: true });
-    container.appendChild(app.canvas);
-    const dotGraphic = new Graphics();
-    dotGraphic.circle(8, 8, 8).fill(0xffffff);
-    const dot = app.renderer.generateTexture(dotGraphic);
-    dotGraphic.destroy();
-    const game = new Game(app, container, dot);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    container.appendChild(renderer.domElement);
+    const game = new Game(renderer, container);
     game.build();
     game.resize();
     game.resizeObserver = new ResizeObserver(() => game.resize());
     game.resizeObserver.observe(container);
-    app.ticker.add(game.tickFn);
+    renderer.setAnimationLoop(() => game.tick());
     return game;
   }
 
-  setInput(patch: Partial<InputState>): void {
-    Object.assign(this.input, patch);
+  setInput(patch: Partial<ScreenInput>): void {
+    if (patch.ix !== undefined || patch.iz !== undefined) {
+      const ix = patch.ix ?? this.screenIx;
+      const iz = patch.iz ?? this.screenIz;
+      this.screenIx = ix;
+      this.screenIz = iz;
+      // Rotate screen input by camera yaw into world space. Camera sits at
+      // yaw behind the player, so forward = -(sin yaw, cos yaw).
+      const s = Math.sin(this.camYaw);
+      const c = Math.cos(this.camYaw);
+      this.move.mx = ix * c + iz * s;
+      this.move.mz = -ix * s + iz * c;
+    }
+    if (patch.jumpPressed !== undefined) this.move.jumpPressed = patch.jumpPressed;
   }
 
+  private screenIx = 0;
+  private screenIz = 0;
+
   castRitual(fx: EffectEvent): void {
-    this.particles.burst(fx, this.body.x, -(this.body.y + 44));
+    this.particles.burst(
+      fx,
+      new THREE.Vector3(this.body.x, this.body.y + 1.4, this.body.z),
+    );
     this.spiritAction = fx.spirit_action;
-    this.spiritActionT = 0;
+    this.spiritT = 0;
   }
 
   destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.app.ticker.remove(this.tickFn);
+    this.renderer.setAnimationLoop(null);
     this.resizeObserver?.disconnect();
-    this.particles.destroy();
-    // Only remove OUR canvas: a newer StrictMode boot may have appended its
-    // own canvas to the same container already. Never innerHTML the host.
-    const canvas = this.app.canvas as HTMLCanvasElement | undefined;
-    this.app.destroy();
+    this.particles.dispose();
+    this.fireflies.dispose();
+    this.scene.traverse((obj: THREE.Object3D) => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.geometry) mesh.geometry.dispose();
+      const mat = (mesh as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+      if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+      else if (mat) mat.dispose();
+    });
+    for (const d of this.disposables) d.dispose();
+    const canvas = this.renderer.domElement;
+    this.renderer.dispose();
+    // Only remove OUR canvas; a newer StrictMode boot may own the container now.
     if (canvas && canvas.parentElement === this.container) {
       this.container.removeChild(canvas);
     }
   }
 
-  private groundScreenY(): number {
-    return this.viewH * 0.78;
-  }
-
-  private resize(): void {
-    const w = Math.max(1, this.container.clientWidth);
-    const h = Math.max(1, this.container.clientHeight);
-    this.viewW = w;
-    this.viewH = h;
-    this.app.renderer.resize(w, h);
-    this.drawSky();
+  private toon(color: number, extra: Partial<THREE.MeshToonMaterialParameters> = {}) {
+    return new THREE.MeshToonMaterial({ color, gradientMap: this.toonRamp, ...extra });
   }
 
   private build(): void {
     this.particles.reducedMotion =
       typeof window !== 'undefined' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.drawSun();
-    this.drawHills(this.hillsFar, 0.2, HILL_FAR, 11);
-    this.drawHills(this.hillsNear, 0.45, HILL_NEAR, 23);
-    this.app.stage.addChild(this.sky, this.sun, this.hillsFar, this.hillsNear);
+    this.scene.fog = new THREE.Fog(FOG_COLOR, 60, 220);
 
-    const ground = new Graphics();
-    ground.rect(0, 0, WORLD.width, 600).fill(GROUND);
-    ground.rect(0, -5, WORLD.width, 5).fill(GROUND_TOP);
-    this.world.addChild(ground);
-    for (const p of PLATFORMS) {
-      const g = new Graphics();
-      g.roundRect(p.x, -(p.y + 18), p.w, 18, 6).fill(PLATFORM);
-      g.rect(p.x + 4, -(p.y + 18), p.w - 8, 4).fill(PLATFORM_TOP);
-      this.world.addChild(g);
+    const hemi = new THREE.HemisphereLight(0xbfd9ff, 0x8a9a7b, 0.9);
+    this.scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffe3b3, 2.6);
+    sun.position.set(40, 60, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.left = -70;
+    sun.shadow.camera.right = 70;
+    sun.shadow.camera.top = 70;
+    sun.shadow.camera.bottom = -70;
+    sun.shadow.camera.far = 200;
+    sun.shadow.bias = -0.0004;
+    this.scene.add(sun);
+
+    this.buildSky();
+    this.buildGround();
+    this.buildMountains();
+    this.buildClouds();
+    this.buildArch();
+    this.buildTrees();
+    this.buildGrass();
+    this.buildFlowers();
+    this.buildStones();
+    this.buildTraveler();
+    this.buildWisp();
+    this.scene.add(this.particles.group, this.fireflies.points);
+    this.attachOrbit();
+  }
+
+  private buildSky(): void {
+    const geo = new THREE.SphereGeometry(400, 24, 16);
+    const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+    const colors = new Float32Array(pos.count * 3);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const t = THREE.MathUtils.clamp(pos.getY(i) / 400 + 0.12, 0, 1);
+      c.copy(SKY_BOTTOM).lerp(SKY_TOP, Math.pow(t, 0.65));
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
     }
-    this.buildPlayer();
-    this.buildSpirit();
-    this.world.addChild(this.particles.container);
-    this.app.stage.addChild(this.world);
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const sky = new THREE.Mesh(
+      geo,
+      new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }),
+    );
+    sky.renderOrder = -10;
+    this.scene.add(sky);
+
+    const halo = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: makeSoftDotTexture(),
+        color: 0xffedb8,
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        fog: false,
+      }),
+    );
+    halo.position.set(150, 190, 60);
+    halo.scale.set(150, 150, 1);
+    this.scene.add(halo);
   }
 
-  private drawSky(): void {
-    const { sky, viewW: w, viewH: h } = this;
-    sky.clear();
-    const bands = 10;
-    const top = { r: (SKY_TOP >> 16) & 0xff, g: (SKY_TOP >> 8) & 0xff, b: SKY_TOP & 0xff };
-    const bottom = { r: (SKY_BOTTOM >> 16) & 0xff, g: (SKY_BOTTOM >> 8) & 0xff, b: SKY_BOTTOM & 0xff };
-    for (let i = 0; i < bands; i++) {
-      const t0 = i / bands;
-      const r = Math.round(top.r + (bottom.r - top.r) * t0);
-      const g = Math.round(top.g + (bottom.g - top.g) * t0);
-      const b = Math.round(top.b + (bottom.b - top.b) * t0);
-      sky.rect(0, t0 * h, w, h / bands + 1).fill((r << 16) | (g << 8) | b);
+  private buildGround(): void {
+    const geo = new THREE.CircleGeometry(WORLD3D.radius + 8, 56);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.getAttribute('position') as THREE.BufferAttribute;
+    const colors = new Float32Array(pos.count * 3);
+    const base = new THREE.Color(0x7fa35a);
+    const sunlit = new THREE.Color(0xa9c46b);
+    const c = new THREE.Color();
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
+      const n = 0.5 + 0.5 * Math.sin(x * 0.11 + 1.7) * Math.cos(z * 0.13 - 0.6);
+      c.copy(base).lerp(sunlit, n * 0.75);
+      colors[i * 3] = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
     }
-    this.sun.position.set(w * 0.72, h * 0.24);
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    const ground = new THREE.Mesh(
+      geo,
+      new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
+    );
+    ground.receiveShadow = true;
+    this.scene.add(ground);
   }
 
-  private drawSun(): void {
-    const glow = new Graphics();
-    glow.circle(0, 0, 64).fill({ color: 0xfff6dd, alpha: 0.5 });
-    glow.circle(0, 0, 40).fill({ color: 0xffedb8, alpha: 0.7 });
-    glow.circle(0, 0, 26).fill(0xffe9a8);
-    this.sun.addChild(glow);
+  private buildMountains(): void {
+    const rand = mulberry32(31);
+    const mat = this.toon(0x8fa3b8);
+    for (let i = 0; i < 9; i++) {
+      const a = (i / 9) * Math.PI * 2 + rand() * 0.4;
+      const r = 150 + rand() * 60;
+      const h = 40 + rand() * 45;
+      const m = new THREE.Mesh(new THREE.ConeGeometry(28 + rand() * 22, h, 5), mat);
+      m.position.set(Math.cos(a) * r, h / 2 - 4, Math.sin(a) * r);
+      m.rotation.y = rand() * Math.PI;
+      this.scene.add(m);
+    }
   }
 
-  private drawHills(layer: Container, _factor: number, color: number, seed: number): void {
+  private buildClouds(): void {
+    const tex = makeSoftDotTexture();
+    this.disposables.push(tex);
+    const rand = mulberry32(97);
+    for (let i = 0; i < 8; i++) {
+      const mat = new THREE.SpriteMaterial({
+        map: tex,
+        color: 0xfff6e8,
+        transparent: true,
+        opacity: 0.75 + rand() * 0.2,
+        depthWrite: false,
+      });
+      const s = new THREE.Sprite(mat);
+      const a = rand() * Math.PI * 2;
+      const r = 60 + rand() * 90;
+      s.position.set(Math.cos(a) * r, 26 + rand() * 22, Math.sin(a) * r);
+      const w = 30 + rand() * 30;
+      s.scale.set(w, w * 0.42, 1);
+      this.clouds.push(s);
+      this.scene.add(s);
+    }
+  }
+
+  private buildArch(): void {
+    const mat = this.toon(0x9a958a);
+    const arch = new THREE.Group();
+    const top = new THREE.Mesh(new THREE.TorusGeometry(4, 0.9, 8, 14, Math.PI), mat);
+    top.position.y = 5;
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(1.8, 5, 1.8), mat);
+    legL.position.set(-4, 2.5, 0);
+    const legR = legL.clone();
+    legR.position.x = 4;
+    arch.add(top, legL, legR);
+    arch.position.set(18, 0, -30);
+    arch.rotation.y = 0.5;
+    arch.traverse((o: THREE.Object3D) => {
+      if ((o as THREE.Mesh).isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+      }
+    });
+    this.scene.add(arch);
+  }
+
+  private buildTrees(): void {
+    const rand = mulberry32(53);
+    const trunkMat = this.toon(0x7a5c42);
+    const leafMats = [0x5d8f4e, 0x6fa055, 0x4f7d46].map(
+      (c) => this.toon(c),
+    );
+    const spots: Array<[number, number]> = [[-24, -6], [26, 10], [-8, -34], [34, -22], [-34, 20]];
+    for (const [x, z] of spots) {
+      const tree = new THREE.Group();
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.55, 2.6, 6), trunkMat);
+      trunk.position.y = 1.3;
+      tree.add(trunk);
+      const puffs = 2 + Math.floor(rand() * 2);
+      for (let i = 0; i < puffs; i++) {
+        const mat = leafMats[Math.floor(rand() * leafMats.length)]!;
+        const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(1.4 + rand() * 0.9, 1), mat);
+        puff.position.set((rand() - 0.5) * 2.2, 3 + rand() * 1.6, (rand() - 0.5) * 2.2);
+        tree.add(puff);
+      }
+      tree.position.set(x, 0, z);
+      tree.traverse((o: THREE.Object3D) => {
+        if ((o as THREE.Mesh).isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+      this.scene.add(tree);
+    }
+  }
+
+  private scatterOnDisc(count: number, radius: number, seed: number): Array<{ x: number; z: number; s: number; r: number }> {
     const rand = mulberry32(seed);
-    const g = new Graphics();
-    let x = -100;
-    while (x < WORLD.width + 100) {
-      const w = 260 + rand() * 320;
-      const h = 90 + rand() * 150;
-      g.ellipse(x + w / 2, 0, w / 2, h).fill(color);
-      x += w * (0.55 + rand() * 0.3);
+    const out: Array<{ x: number; z: number; s: number; r: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const a = rand() * Math.PI * 2;
+      const d = Math.sqrt(rand()) * radius;
+      out.push({ x: Math.cos(a) * d, z: Math.sin(a) * d, s: 0.7 + rand() * 0.7, r: rand() * Math.PI * 2 });
     }
-    layer.addChild(g);
+    return out;
   }
 
-  private buildPlayer(): void {
-    const g = this.playerBody;
-    // Cloak, hood, face, facing eye. Feet origin.
-    g.roundRect(-15, -40, 30, 40, 9).fill(0x2e3a44);
-    g.circle(0, -47, 11.5).fill(0x2e3a44);
-    g.circle(0, -45, 8).fill(0xf2c9a0);
-    g.circle(3.5, -45, 1.7).fill(0x2b2620);
-    g.rect(-13, -14, 26, 3).fill({ color: 0xd9b36a, alpha: 0.9 });
-    this.playerView.addChild(g);
-    this.world.addChild(this.playerView);
+  private buildGrass(): void {
+    const geo = new THREE.ConeGeometry(0.09, 0.55, 4);
+    const mat = this.toon(0xffffff);
+    const spots = this.scatterOnDisc(600, 52, 11);
+    const mesh = new THREE.InstancedMesh(geo, mat, spots.length);
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    spots.forEach((p, i) => {
+      dummy.position.set(p.x, 0.24 * p.s, p.z);
+      dummy.rotation.set(0, p.r, 0);
+      dummy.scale.setScalar(p.s);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      color.setHex(0x6f9a4e).offsetHSL((p.r % 1) * 0.02 - 0.01, 0, (p.s - 1) * 0.1);
+      mesh.setColorAt(i, color);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    this.scene.add(mesh);
   }
 
-  private buildSpirit(): void {
-    const g = this.spiritBody;
-    g.circle(0, 0, 26).fill({ color: 0xfff3cf, alpha: 0.35 });
-    g.circle(0, 0, 17).fill({ color: 0xffedb8, alpha: 0.6 });
-    g.circle(0, 0, 11).fill(0xfffdf4);
-    g.circle(-3.5, -2, 1.6).fill(0x4a4438);
-    g.circle(3.5, -2, 1.6).fill(0x4a4438);
-    this.spiritView.addChild(g);
-    this.world.addChild(this.spiritView);
+  private buildFlowers(): void {
+    const spots = this.scatterOnDisc(150, 50, 29);
+    const stemGeo = new THREE.CylinderGeometry(0.02, 0.03, 0.5, 5);
+    const stemMat = this.toon(0x4f7d46);
+    const stems = new THREE.InstancedMesh(stemGeo, stemMat, spots.length);
+    const headGeo = new THREE.IcosahedronGeometry(0.13, 0);
+    const headMat = new THREE.MeshToonMaterial({
+      color: 0xffffff,
+      gradientMap: this.toonRamp,
+      emissive: 0x554422,
+      emissiveIntensity: 0.7,
+    });
+    const heads = new THREE.InstancedMesh(headGeo, headMat, spots.length);
+    const dummy = new THREE.Object3D();
+    const color = new THREE.Color();
+    const palette = [0xffb3d9, 0x9ad9ff, 0xffd97a];
+    spots.forEach((p, i) => {
+      dummy.position.set(p.x, 0.25 * p.s, p.z);
+      dummy.rotation.set(0, p.r, 0);
+      dummy.scale.setScalar(p.s);
+      dummy.updateMatrix();
+      stems.setMatrixAt(i, dummy.matrix);
+      dummy.position.y = 0.52 * p.s;
+      dummy.updateMatrix();
+      heads.setMatrixAt(i, dummy.matrix);
+      color.setHex(palette[i % palette.length]!);
+      heads.setColorAt(i, color);
+    });
+    stems.instanceMatrix.needsUpdate = true;
+    heads.instanceMatrix.needsUpdate = true;
+    if (heads.instanceColor) heads.instanceColor.needsUpdate = true;
+    this.scene.add(stems, heads);
+  }
+
+  private buildStones(): void {
+    const mat = this.toon(0x8d8a80);
+    for (const st of STONES) {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(st.r, st.r * 1.15, 1.2, 7), mat);
+      m.position.set(st.x, st.y - 0.6, st.z);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      this.scene.add(m);
+    }
+  }
+
+  private buildTraveler(): void {
+    const cloak = this.toon(0x2e3a44);
+    const skin = this.toon(0xf2c9a0);
+    const gold = this.toon(0xd9b36a);
+    const dark = this.toon(0x2b2620);
+
+    const body = new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.5, 10), cloak);
+    body.position.y = 0.9;
+    const hood = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), cloak);
+    hood.position.set(0, 1.82, -0.06);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.3, 12, 10), skin);
+    head.position.set(0, 1.78, 0.1);
+    const eyeGeo = new THREE.SphereGeometry(0.045, 8, 8);
+    const eyeL = new THREE.Mesh(eyeGeo, dark);
+    eyeL.position.set(-0.11, 1.8, 0.37);
+    const eyeR = new THREE.Mesh(eyeGeo, dark);
+    eyeR.position.set(0.11, 1.8, 0.37);
+    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 14), gold);
+    scarf.position.y = 1.42;
+    scarf.rotation.x = Math.PI / 2;
+    this.player.add(body, hood, head, eyeL, eyeR, scarf);
+    this.player.traverse((o: THREE.Object3D) => {
+      if ((o as THREE.Mesh).isMesh) o.castShadow = true;
+    });
+    this.scene.add(this.player);
+  }
+
+  private buildWisp(): void {
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(0.32, 14, 12),
+      new THREE.MeshBasicMaterial({ color: 0xfffdf4 }),
+    );
+    const glowTex = makeSoftDotTexture();
+    this.disposables.push(glowTex);
+    const glow = new THREE.Sprite(
+      new THREE.SpriteMaterial({
+        map: glowTex,
+        color: 0xffe9b8,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    );
+    glow.scale.set(2.4, 2.4, 1);
+    const eyeGeo = new THREE.SphereGeometry(0.045, 8, 8);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x4a4438 });
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeL.position.set(-0.11, 0.05, 0.29);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+    eyeR.position.set(0.11, 0.05, 0.29);
+    this.wisp.add(core, glow, eyeL, eyeR, this.wispLight);
+    this.scene.add(this.wisp);
+  }
+
+  private attachOrbit(): void {
+    const canvas = this.renderer.domElement;
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointerdown', (e: PointerEvent) => {
+      this.dragging = true;
+      this.lastPointer = { x: e.clientX, y: e.clientY };
+      canvas.setPointerCapture?.(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e: PointerEvent) => {
+      if (!this.dragging) return;
+      this.camYaw -= (e.clientX - this.lastPointer.x) * 0.005;
+      this.camPitch = THREE.MathUtils.clamp(
+        this.camPitch + (e.clientY - this.lastPointer.y) * 0.003,
+        0.12,
+        1.1,
+      );
+      this.lastPointer = { x: e.clientX, y: e.clientY };
+    });
+    const stop = () => {
+      this.dragging = false;
+    };
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+  }
+
+  private resize(): void {
+    const w = Math.max(1, this.container.clientWidth);
+    const h = Math.max(1, this.container.clientHeight);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
   }
 
   private tick(): void {
     if (this.destroyed) return;
-    const dt = Math.min(this.app.ticker.deltaMS / 1000, 0.05);
+    const dt = Math.min(this.clock.getDelta(), 0.05);
     this.time += dt;
-    this.body = stepBody(this.body, this.input, dt);
-    this.input.jumpPressed = false;
+    this.body = stepBody3(this.body, this.move, dt);
+    this.move.jumpPressed = false;
     this.updateCamera(dt);
-    this.updatePlayerView();
-    this.updateSpirit(dt);
+    this.updatePlayer();
+    this.updateWisp(dt);
     this.particles.update(dt, this.time);
-    this.world.position.set(-this.camX, this.groundScreenY());
-    this.hillsFar.position.set(-this.camX * 0.2, this.groundScreenY() + 6);
-    this.hillsNear.position.set(-this.camX * 0.45, this.groundScreenY() + 6);
+    this.fireflies.update(this.time);
+    for (const [i, cloud] of this.clouds.entries()) {
+      cloud.position.x += dt * (0.3 + (i % 3) * 0.15);
+      if (cloud.position.x > 160) cloud.position.x = -160;
+    }
+    this.renderer.render(this.scene, this.camera);
   }
 
   private updateCamera(dt: number): void {
-    const maxCam = Math.max(0, WORLD.width - this.viewW);
-    const target = Math.min(Math.max(this.body.x - this.viewW * 0.42, 0), maxCam);
-    this.camX += (target - this.camX) * Math.min(1, dt * 6);
+    const dist = 14;
+    const target = new THREE.Vector3(
+      this.body.x + Math.sin(this.camYaw) * Math.cos(this.camPitch) * dist,
+      this.body.y + 2 + Math.sin(this.camPitch) * dist,
+      this.body.z + Math.cos(this.camYaw) * Math.cos(this.camPitch) * dist,
+    );
+    this.camPos.lerp(target, Math.min(1, dt * 6));
+    this.camera.position.copy(this.camPos);
+    this.camera.lookAt(this.body.x, this.body.y + 2, this.body.z);
   }
 
-  private updatePlayerView(): void {
+  private updatePlayer(): void {
     const b = this.body;
-    const moving = Math.abs(b.vx) > 1 && b.onGround;
-    const bob = moving ? Math.sin(this.time * 14) * 2.2 : Math.sin(this.time * 3) * 1.1;
-    this.playerView.position.set(b.x, -b.y + bob);
-    this.playerView.scale.x = b.facing;
-    this.playerView.rotation = moving ? b.facing * 0.04 : 0;
+    const moving = Math.hypot(b.vx, b.vz) > 0.5;
+    const bob = b.onGround
+      ? moving
+        ? Math.abs(Math.sin(this.time * 11)) * 0.09
+        : Math.sin(this.time * 2.4) * 0.02
+      : 0;
+    this.player.position.set(b.x, b.y + bob, b.z);
+    // Smooth-turn toward the physics facing.
+    let d = b.facing - this.player.rotation.y;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    this.player.rotation.y += d * 0.18;
+    this.player.rotation.x = moving ? 0.08 : 0;
   }
 
-  private updateSpirit(dt: number): void {
-    this.spiritActionT += dt;
-    const hoverY = 96 + Math.sin(this.time * 2.2) * 8;
-    const targetX = this.body.x - this.body.facing * 74;
-    const targetY = this.body.y + hoverY;
-    const k = Math.min(1, dt * 3.2);
-    this.spiritPos.x += (targetX - this.spiritPos.x) * k;
-    this.spiritPos.y += (targetY - this.spiritPos.y) * k;
+  private updateWisp(dt: number): void {
+    this.spiritT += dt;
+    const hoverY = 2.4 + Math.sin(this.time * 2.2) * 0.25;
+    const fx = Math.sin(this.body.facing);
+    const fz = Math.cos(this.body.facing);
+    const target = new THREE.Vector3(
+      this.body.x - fx * 2.4,
+      this.body.y + hoverY,
+      this.body.z - fz * 2.4,
+    );
+    this.wisp.position.lerp(target, Math.min(1, dt * 3.2));
 
-    let dx = 0;
     let dy = 0;
+    let dx = 0;
     let scale = 1;
-    const t = this.spiritActionT;
+    const t = this.spiritT;
     if (t < 1.4) {
-      if (this.spiritAction === 'nod') dy = Math.abs(Math.sin(t * 9)) * 9;
-      else if (this.spiritAction === 'bounce') dy = -Math.abs(Math.sin(t * 9)) * 26;
-      else if (this.spiritAction === 'wave') dx = Math.sin(t * 12) * 10;
+      if (this.spiritAction === 'nod') dy = -Math.abs(Math.sin(t * 9)) * 0.25;
+      else if (this.spiritAction === 'bounce') dy = Math.abs(Math.sin(t * 9)) * 0.8;
+      else if (this.spiritAction === 'wave') dx = Math.sin(t * 12) * 0.3;
       else if (this.spiritAction === 'curl') scale = 0.72;
     }
-    this.spiritView.position.set(this.spiritPos.x + dx, -(this.spiritPos.y + dy));
-    this.spiritView.scale.set(scale);
+    this.wisp.position.y += dy;
+    this.wisp.position.x += dx;
+    this.wisp.scale.setScalar(scale);
+    this.wispLight.intensity = 8 + Math.sin(this.time * 3) * 1.5;
   }
 }

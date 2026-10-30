@@ -4,12 +4,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Game } from './scene';
 import { MountGuard } from './mountGuard';
 
-// Owns the Pixi application lifecycle: create on mount, destroy on unmount.
-// Keyboard + touch input are aggregated here and pushed into the game.
+// Owns the three.js application lifecycle: create on mount, destroy on unmount.
+// Keyboard (WASD/arrows + Space), drag-to-orbit (in scene), and a touch
+// joystick + jump button feed screen-space input into the game.
 export default function GameCanvas({ onReady }: { onReady: (game: Game | null) => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   const guardRef = useRef<MountGuard | null>(null);
+  const joyRef = useRef<HTMLDivElement>(null);
+  const joyId = useRef<number | null>(null);
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
   const [bootError, setBootError] = useState<string | null>(null);
   const readyRef = useRef(onReady);
   readyRef.current = onReady;
@@ -25,8 +29,6 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
     Game.create(host)
       .then((g) => {
         if (!guard.isCurrent(token)) {
-          // Stale StrictMode boot: destroy the orphan without touching the
-          // live canvas (Game.destroy only removes its own canvas).
           g.destroy();
           return;
         }
@@ -38,23 +40,25 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
       .catch((err: unknown) => {
         if (!guard.isCurrent(token)) return;
         const message = err instanceof Error ? err.message : String(err);
-        console.error('[game] Pixi boot failed:', err);
+        console.error('[game] three.js boot failed:', err);
         setBootError(message || 'unknown boot failure');
       });
 
     const keys = new Set<string>();
     const push = () => {
-      gameRef.current?.setInput({
-        left: keys.has('ArrowLeft') || keys.has('a') || keys.has('A'),
-        right: keys.has('ArrowRight') || keys.has('d') || keys.has('D'),
-        jumpHeld: keys.has(' ') || keys.has('ArrowUp') || keys.has('w') || keys.has('W'),
-      });
+      const ix =
+        (keys.has('d') || keys.has('D') || keys.has('ArrowRight') ? 1 : 0) -
+        (keys.has('a') || keys.has('A') || keys.has('ArrowLeft') ? 1 : 0);
+      const iz =
+        (keys.has('s') || keys.has('S') || keys.has('ArrowDown') ? 1 : 0) -
+        (keys.has('w') || keys.has('W') || keys.has('ArrowUp') ? 1 : 0);
+      gameRef.current?.setInput({ ix, iz });
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', ' '].includes(e.key)) e.preventDefault();
-      if (!e.repeat && (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W')) {
-        gameRef.current?.setInput({ jumpPressed: true });
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '].includes(e.key)) {
+        e.preventDefault();
       }
+      if (!e.repeat && e.key === ' ') gameRef.current?.setInput({ jumpPressed: true });
       keys.add(e.key);
       push();
     };
@@ -66,7 +70,7 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
     window.addEventListener('keyup', onKeyUp);
 
     return () => {
-      guard.next(); // invalidate this mount's pending boot, if any
+      guard.next();
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       game?.destroy();
@@ -75,21 +79,21 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
     };
   }, []);
 
-  const hold = (patch: Parameters<Game['setInput']>[0]) => ({
-    onPointerDown: (e: React.PointerEvent) => {
-      e.preventDefault();
-      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-      gameRef.current?.setInput(patch);
-    },
-    onPointerUp: () => gameRef.current?.setInput({ left: false, right: false }),
-    onPointerCancel: () => gameRef.current?.setInput({ left: false, right: false }),
-  });
+  const setJoystick = (dx: number, dy: number) => {
+    const len = Math.hypot(dx, dy);
+    const max = 44;
+    const k = len > max ? max / len : 1;
+    const x = dx * k;
+    const y = dy * k;
+    setKnob({ x, y });
+    gameRef.current?.setInput({ ix: x / max, iz: y / max });
+  };
 
-  const touchBtn: React.CSSProperties = {
-    width: '56px',
-    height: '56px',
-    fontSize: '1.4rem',
-    borderRadius: '14px',
+  const jumpBtn: React.CSSProperties = {
+    width: '64px',
+    height: '64px',
+    fontSize: '1.5rem',
+    borderRadius: '50%',
     border: '1px solid rgba(244,239,228,0.35)',
     backgroundColor: 'rgba(16,21,17,0.55)',
     color: '#f4efe4',
@@ -104,10 +108,10 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
         ref={hostRef}
         style={{
           width: '100%',
-          height: 'clamp(320px, 58vh, 560px)',
+          height: 'clamp(340px, 62vh, 600px)',
           borderRadius: '12px',
           overflow: 'hidden',
-          backgroundColor: '#d8d5cc',
+          backgroundColor: '#7fb2e5',
         }}
       />
       {bootError && (
@@ -140,26 +144,66 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
           bottom: '12px',
           display: 'flex',
           justifyContent: 'space-between',
+          alignItems: 'flex-end',
           pointerEvents: 'none',
         }}
       >
-        <div style={{ display: 'flex', gap: '10px', pointerEvents: 'auto' }}>
-          <button aria-label="Move left" style={touchBtn} {...hold({ left: true })}>
-            ◀
-          </button>
-          <button aria-label="Move right" style={touchBtn} {...hold({ right: true })}>
-            ▶
-          </button>
+        <div
+          ref={joyRef}
+          style={{
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            border: '1px solid rgba(244,239,228,0.35)',
+            backgroundColor: 'rgba(16,21,17,0.4)',
+            position: 'relative',
+            pointerEvents: 'auto',
+            touchAction: 'none',
+          }}
+          onPointerDown={(e) => {
+            e.preventDefault();
+            joyId.current = e.pointerId;
+            (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+            const r = joyRef.current!.getBoundingClientRect();
+            setJoystick(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
+          }}
+          onPointerMove={(e) => {
+            if (joyId.current !== e.pointerId) return;
+            const r = joyRef.current!.getBoundingClientRect();
+            setJoystick(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2));
+          }}
+          onPointerUp={() => {
+            joyId.current = null;
+            setKnob({ x: 0, y: 0 });
+            gameRef.current?.setInput({ ix: 0, iz: 0 });
+          }}
+          onPointerCancel={() => {
+            joyId.current = null;
+            setKnob({ x: 0, y: 0 });
+            gameRef.current?.setInput({ ix: 0, iz: 0 });
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              left: `calc(50% + ${knob.x}px)`,
+              top: `calc(50% + ${knob.y}px)`,
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(244,239,228,0.75)',
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
         </div>
         <div style={{ pointerEvents: 'auto' }}>
           <button
             aria-label="Jump"
-            style={touchBtn}
+            style={jumpBtn}
             onPointerDown={(e) => {
               e.preventDefault();
-              gameRef.current?.setInput({ jumpPressed: true, jumpHeld: true });
+              gameRef.current?.setInput({ jumpPressed: true });
             }}
-            onPointerUp={() => gameRef.current?.setInput({ jumpHeld: false })}
           >
             ⤒
           </button>
