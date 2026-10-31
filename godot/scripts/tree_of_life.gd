@@ -37,6 +37,28 @@ func _ready() -> void:
 		var glyph := get_node_or_null("Runes/Rune%d/Glyph" % i) as MeshInstance3D
 		_glyph_mats.append(_unique_emissive(glyph))
 	_window_mat = _unique_emissive(get_node_or_null("Door/DoorWindow") as MeshInstance3D)
+	var treemesh := get_node_or_null("TreeMesh")
+	if treemesh != null:
+		_enable_vertex_colors(treemesh)
+
+
+## Imported GLB carries COLOR_0; enable it as albedo on every surface.
+func _enable_vertex_colors(root: Node) -> void:
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.push_back(c)
+		var mi := n as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		for s in range(mi.mesh.get_surface_count()):
+			var src := mi.mesh.surface_get_material(s)
+			var mat := (src as StandardMaterial3D).duplicate() as StandardMaterial3D if src is StandardMaterial3D else StandardMaterial3D.new()
+			mat.vertex_color_use_as_albedo = true
+			mat.roughness = 0.95
+			mat.metallic = 0.0
+			mi.set_surface_override_material(s, mat)
 
 
 func _process(delta: float) -> void:
