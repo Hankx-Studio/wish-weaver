@@ -3,26 +3,73 @@ import GodotEmbed from '@/features/godot/GodotEmbed';
 
 export const metadata = { title: 'Play — Spirit Companion' };
 
-// Main game (Demo v1): Godot build, guest mode, no login needed.
+// Main game (Demo v1): fullscreen Godot build, guest mode, no login needed.
 export default async function PlayPage() {
   return (
-    <main style={{ maxWidth: '56rem', margin: '0 auto', padding: '2.5rem 1.25rem 3rem' }}>
-      <h1
+    <main
+      style={{
+        position: 'relative',
+        height: '100vh',
+        overflow: 'hidden',
+        backgroundColor: '#101512',
+      }}
+    >
+      <GodotEmbed mode="play" layout="fill" />
+      <div
         style={{
-          fontFamily: 'Georgia, "Times New Roman", serif',
-          fontSize: '1.6rem',
-          margin: '0 0 1rem',
+          position: 'absolute',
+          top: 'max(12px, env(safe-area-inset-top))',
+          left: 'max(12px, env(safe-area-inset-left))',
+          display: 'flex',
+          gap: '0.6rem',
+          alignItems: 'center',
+          pointerEvents: 'none',
         }}
       >
-        The Gray Meadow
-      </h1>
-      <GodotEmbed mode="play" />
-      <p style={{ marginTop: '0.9rem', fontSize: '0.82rem', color: '#8a8471', lineHeight: 1.6 }}>
-        Move: WASD · Interact: E · Swap hero: T. Progress is not saved yet.{' '}
-        <Link href="/classic" style={{ color: '#d9b36a' }}>
-          Try the classic demo
+        <Link
+          href="/"
+          style={{
+            pointerEvents: 'auto',
+            fontSize: '0.8rem',
+            color: '#f4efe4',
+            backgroundColor: 'rgba(16,21,17,0.55)',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '999px',
+            textDecoration: 'none',
+          }}
+        >
+          ← Meadow
         </Link>
-        .
+        <Link
+          href="/classic"
+          style={{
+            pointerEvents: 'auto',
+            fontSize: '0.8rem',
+            color: '#f4efe4',
+            backgroundColor: 'rgba(16,21,17,0.55)',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '999px',
+            textDecoration: 'none',
+          }}
+        >
+          Classic
+        </Link>
+      </div>
+      <p
+        style={{
+          position: 'absolute',
+          bottom: 'max(10px, env(safe-area-inset-bottom))',
+          left: 0,
+          right: 0,
+          margin: 0,
+          textAlign: 'center',
+          fontSize: '0.72rem',
+          color: 'rgba(244,239,228,0.6)',
+          textShadow: '0 1px 6px rgba(0,0,0,0.7)',
+          pointerEvents: 'none',
+        }}
+      >
+        WASD move · E interact · T swap hero
       </p>
     </main>
   );

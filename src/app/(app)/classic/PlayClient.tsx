@@ -31,7 +31,8 @@ interface CastInfo {
 
 // Play screen state: holds the game handle, resolves spells locally, and
 // shows the spirit's one-line reply. No network calls in this slice.
-export default function PlayClient() {
+export default function PlayClient({ layout = 'card' }: { layout?: 'card' | 'fill' }) {
+  const fill = layout === 'fill';
   const gameRef = useRef<Game | null>(null);
   const [cast, setCast] = useState<CastInfo>({
     line: 'The spirit wakes and follows you.',
@@ -65,6 +66,70 @@ export default function PlayClient() {
     setCast({ line: INTENT_REPLY[intent], intent, source: 'local_rule' });
   }, []);
 
+  const reply = (
+    <>
+      <p
+        style={{
+          margin: 0,
+          fontStyle: 'italic',
+          color: '#f4efe4',
+          lineHeight: 1.5,
+          textShadow: fill ? '0 1px 8px rgba(0,0,0,0.7)' : undefined,
+        }}
+      >
+        “{cast.line}”
+      </p>
+      <span
+        style={{
+          fontSize: '0.72rem',
+          padding: '0.15rem 0.5rem',
+          borderRadius: '999px',
+          border: '1px solid rgba(244,239,228,0.35)',
+          backgroundColor: fill ? 'rgba(16,21,17,0.55)' : undefined,
+          color: fill ? '#f4efe4' : '#8a8471',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {cast.intent} · {cast.source}
+      </span>
+    </>
+  );
+
+  if (fill) {
+    return (
+      <div style={{ position: 'absolute', inset: 0 }}>
+        <GameCanvas onReady={onReady} layout="fill" />
+        <div
+          style={{
+            position: 'absolute',
+            top: 'max(56px, calc(env(safe-area-inset-top) + 44px))',
+            left: 'max(12px, env(safe-area-inset-left))',
+            right: 'max(12px, env(safe-area-inset-right))',
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            pointerEvents: 'none',
+          }}
+        >
+          {reply}
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            left: 'max(12px, env(safe-area-inset-left))',
+            right: 'max(12px, env(safe-area-inset-right))',
+            bottom: 'max(12px, env(safe-area-inset-bottom))',
+            maxWidth: '36rem',
+            margin: '0 auto',
+          }}
+        >
+          <RitualBar onCast={onCast} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div
@@ -76,21 +141,7 @@ export default function PlayClient() {
           flexWrap: 'wrap',
         }}
       >
-        <p style={{ margin: 0, fontStyle: 'italic', color: '#cfc8b4', lineHeight: 1.5 }}>
-          “{cast.line}”
-        </p>
-        <span
-          style={{
-            fontSize: '0.72rem',
-            padding: '0.15rem 0.5rem',
-            borderRadius: '999px',
-            border: '1px solid #2c423b',
-            color: '#8a8471',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {cast.intent} · {cast.source}
-        </span>
+        {reply}
       </div>
       <GameCanvas onReady={onReady} />
       <div style={{ marginTop: '1rem' }}>
