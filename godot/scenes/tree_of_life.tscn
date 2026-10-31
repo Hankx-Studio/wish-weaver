@@ -3,104 +3,104 @@
 [ext_resource type="Script" path="res://scripts/tree_of_life.gd" id="1"]
 
 [sub_resource type="StandardMaterial3D" id="bark_mat"]
-albedo_color = Color(0.4784, 0.3608, 0.2588, 1)
+albedo_color = Color(0.5, 0.45, 0.36, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="dark_bark_mat"]
-albedo_color = Color(0.3647, 0.2745, 0.2118, 1)
+albedo_color = Color(0.42, 0.37, 0.3, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="wood_mat"]
-albedo_color = Color(0.5412, 0.3843, 0.2196, 1)
+albedo_color = Color(0.55, 0.49, 0.39, 1)
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="dark_wood_mat"]
-albedo_color = Color(0.1804, 0.1255, 0.0941, 1)
+albedo_color = Color(0.22, 0.2, 0.18, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="stone_mat"]
-albedo_color = Color(0.5608, 0.5451, 0.5098, 1)
+albedo_color = Color(0.78, 0.69, 0.55, 1)
 roughness = 0.95
 
 [sub_resource type="StandardMaterial3D" id="dark_stone_mat"]
-albedo_color = Color(0.4314, 0.4157, 0.3843, 1)
+albedo_color = Color(0.66, 0.58, 0.47, 1)
 roughness = 0.95
 
 [sub_resource type="StandardMaterial3D" id="cord_mat"]
-albedo_color = Color(0.2902, 0.2275, 0.1725, 1)
+albedo_color = Color(0.34, 0.3, 0.25, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="puff_a_mat"]
-albedo_color = Color(0.949, 0.6549, 0.7647, 1)
+albedo_color = Color(0.5, 0.58, 0.46, 1)
 roughness = 0.9
 emission_enabled = true
-emission = Color(0.949, 0.6549, 0.7647, 1)
+emission = Color(0.5, 0.58, 0.46, 1)
 emission_energy_multiplier = 0.25
 
 [sub_resource type="StandardMaterial3D" id="puff_b_mat"]
-albedo_color = Color(0.9373, 0.5608, 0.7098, 1)
+albedo_color = Color(0.45, 0.54, 0.42, 1)
 roughness = 0.9
 emission_enabled = true
-emission = Color(0.9373, 0.5608, 0.7098, 1)
+emission = Color(0.45, 0.54, 0.42, 1)
 emission_energy_multiplier = 0.25
 
 [sub_resource type="StandardMaterial3D" id="puff_c_mat"]
-albedo_color = Color(0.9686, 0.7569, 0.8353, 1)
+albedo_color = Color(0.55, 0.62, 0.5, 1)
 roughness = 0.9
 emission_enabled = true
-emission = Color(0.9686, 0.7569, 0.8353, 1)
+emission = Color(0.55, 0.62, 0.5, 1)
 emission_energy_multiplier = 0.25
 
 [sub_resource type="StandardMaterial3D" id="puff_d_mat"]
-albedo_color = Color(0.9765, 0.8275, 0.8902, 1)
+albedo_color = Color(0.6, 0.66, 0.54, 1)
 roughness = 0.9
 emission_enabled = true
-emission = Color(0.9765, 0.8275, 0.8902, 1)
+emission = Color(0.6, 0.66, 0.54, 1)
 emission_energy_multiplier = 0.25
 
 [sub_resource type="StandardMaterial3D" id="shell_0_mat"]
 transparency = 1
-albedo_color = Color(0.9686, 0.7569, 0.8353, 0.8)
+albedo_color = Color(0.55, 0.62, 0.5, 0.8)
 roughness = 1.0
 emission_enabled = true
-emission = Color(0.9686, 0.7569, 0.8353, 1)
+emission = Color(0.55, 0.62, 0.5, 1)
 emission_energy_multiplier = 0.35
 cull_mode = 2
 
 [sub_resource type="StandardMaterial3D" id="shell_1_mat"]
 transparency = 1
-albedo_color = Color(0.949, 0.6549, 0.7647, 0.8)
+albedo_color = Color(0.5, 0.58, 0.46, 0.8)
 roughness = 1.0
 emission_enabled = true
-emission = Color(0.949, 0.6549, 0.7647, 1)
+emission = Color(0.5, 0.58, 0.46, 1)
 emission_energy_multiplier = 0.35
 cull_mode = 2
 
 [sub_resource type="StandardMaterial3D" id="shell_2_mat"]
 transparency = 1
-albedo_color = Color(0.9765, 0.8275, 0.8902, 0.8)
+albedo_color = Color(0.6, 0.66, 0.54, 0.8)
 roughness = 1.0
 emission_enabled = true
-emission = Color(0.9765, 0.8275, 0.8902, 1)
+emission = Color(0.6, 0.66, 0.54, 1)
 emission_energy_multiplier = 0.35
 cull_mode = 2
 
 [sub_resource type="StandardMaterial3D" id="lantern_mat"]
-albedo_color = Color(1, 0.7882, 0.5412, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 roughness = 0.7
 emission_enabled = true
 emission = Color(1, 0.6039, 0.2353, 1)
 emission_energy_multiplier = 1.2
 
 [sub_resource type="StandardMaterial3D" id="glyph_mat"]
-albedo_color = Color(1, 0.8196, 0.4, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 roughness = 0.6
 emission_enabled = true
 emission = Color(1, 0.7216, 0.302, 1)
 emission_energy_multiplier = 1.0
 
 [sub_resource type="StandardMaterial3D" id="window_mat"]
-albedo_color = Color(1, 0.8314, 0.5373, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 roughness = 0.6
 emission_enabled = true
 emission = Color(1, 0.6039, 0.2353, 1)

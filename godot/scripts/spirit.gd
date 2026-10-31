@@ -15,6 +15,7 @@ var _rig: Node3D = null
 var _time := 0.0
 var _celebrate_t := 1.0
 var _prev_pos := Vector3.ZERO
+var _wings: Array = []
 
 
 func _ready() -> void:
@@ -27,6 +28,10 @@ func _ready() -> void:
 		_target = get_node_or_null("../Player") as Node3D
 	if _target == null:
 		_target = get_tree().get_first_node_in_group("player") as Node3D
+	for spec in [["Rig/WingUL", 1.0], ["Rig/WingUR", 1.0], ["Rig/WingLL", 0.7], ["Rig/WingLR", 0.7]]:
+		var w := get_node_or_null(str(spec[0])) as Node3D
+		if w != null:
+			_wings.append([w, w.rotation.z, float(spec[1])])
 	_prev_pos = global_position
 
 
@@ -82,3 +87,11 @@ func _animate(delta: float) -> void:
 	var local_vel: Vector3 = global_transform.basis.inverse() * vel
 	_rig.rotation.x = clampf(local_vel.z * 0.06, -tilt_amount, tilt_amount)
 	_rig.rotation.z = clampf(-local_vel.x * 0.06, -tilt_amount, tilt_amount)
+	# Wing flap (faster while celebrating).
+	var rate := 9.0 if _celebrate_t >= 1.0 else 16.0
+	var flap := sin(_time * rate) * 0.3
+	for spec in _wings:
+		var w: Node3D = spec[0]
+		var base: float = spec[1]
+		var factor: float = spec[2]
+		w.rotation.z = base + flap * factor * signf(base)

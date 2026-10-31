@@ -69,7 +69,7 @@ export default async function PlayPage() {
           pointerEvents: 'none',
         }}
       >
-        WASD move · E interact · T swap hero
+        WASD move · E interact · Space jump
       </p>
     </main>
   );

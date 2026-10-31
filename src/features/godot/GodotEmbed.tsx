@@ -30,7 +30,8 @@ export default function GodotEmbed({ mode, className, layout = 'card' }: GodotEm
         borderRadius: fill ? 0 : '12px',
         overflow: 'hidden',
         backgroundColor: '#171d19',
-        pointerEvents: fill ? 'none' : undefined,
+        // Landing backdrop never takes input; fullscreen play must.
+        pointerEvents: fill && mode !== 'play' ? 'none' : undefined,
       }}
     >
       {!loaded && (

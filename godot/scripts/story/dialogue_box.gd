@@ -162,7 +162,7 @@ func _build_ui() -> void:
 		_speaker = Label.new()
 		_speaker.name = "SpeakerLabel"
 		_speaker.add_theme_font_size_override("font_size", 30)
-		_speaker.add_theme_color_override("font_color", Color(1.0, 0.9, 0.6))
+		_speaker.add_theme_color_override("font_color", Color(0.95, 0.78, 0.42))
 		vbox.add_child(_speaker)
 	if _body == null:
 		_body = Label.new()

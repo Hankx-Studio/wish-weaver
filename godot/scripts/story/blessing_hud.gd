@@ -85,13 +85,13 @@ func _refresh() -> void:
 		sb.border_width_right = 3
 		sb.border_width_bottom = 3
 		if on:
-			sb.bg_color = Color(1.0, 0.78, 0.35, 0.95)
+			sb.bg_color = Color(0.91, 0.78, 0.47, 0.95)
 			sb.border_color = Color(1, 1, 1, 0.95)
-			label.add_theme_color_override("font_color", Color(0.25, 0.12, 0.0))
+			label.add_theme_color_override("font_color", Color(0.27, 0.3, 0.4))
 		else:
-			sb.bg_color = Color(0, 0, 0, 0.55)
-			sb.border_color = Color(1, 1, 1, 0.5)
-			label.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+			sb.bg_color = Color(0.27, 0.3, 0.4, 0.6)
+			sb.border_color = Color(0.95, 0.92, 0.87, 0.5)
+			label.add_theme_color_override("font_color", Color(0.95, 0.92, 0.87, 0.9))
 		slot.add_theme_stylebox_override("panel", sb)
 
 

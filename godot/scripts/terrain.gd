@@ -118,10 +118,10 @@ func _ground_height(x: float, z: float) -> float:
 
 
 func _meadow_color(x: float, z: float) -> Color:
-	var base := Color8(0x7f, 0xa3, 0x5a).srgb_to_linear()
-	var sunlit := Color8(0xa9, 0xc4, 0x6b).srgb_to_linear()
-	var shade := Color8(0x5e, 0x8a, 0x4e).srgb_to_linear()
-	var dry := Color8(0xb5, 0xa8, 0x6b).srgb_to_linear()
+	var base := Color8(0x9d, 0xaf, 0x9a).srgb_to_linear()
+	var sunlit := Color8(0xa8, 0xba, 0xa4).srgb_to_linear()
+	var shade := Color8(0x7a, 0x8b, 0x78).srgb_to_linear()
+	var dry := Color8(0xc9, 0xbe, 0x9a).srgb_to_linear()
 	var sun := 0.5 + 0.5 * sin(x * 0.11 + 1.7) * cos(z * 0.13 - 0.6)
 	var pools := 0.5 + 0.5 * sin(x * 0.05 - 0.4 + sin(z * 0.07)) * cos(z * 0.06 + 1.1)
 	var parched := 0.5 + 0.5 * sin(x * 0.21 + 0.3) * sin(z * 0.19 + 2.2)
@@ -244,7 +244,7 @@ func _build_outer_ground() -> void:
 		indices.append_array([0, 1 + (si + 1) % sectors, 1 + si])
 	var mesh := _mesh_from_arrays(verts, normals, PackedColorArray(),
 			PackedVector2Array(), indices)
-	var mat := _std_mat(Color8(0x6b, 0x7f, 0x52).srgb_to_linear(), 1.0)
+	var mat := _std_mat(Color8(0x8a, 0x9a, 0x88).srgb_to_linear(), 1.0)
 	_add_mesh_instance("OuterGround", mesh, mat,
 			GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 
@@ -252,9 +252,9 @@ func _build_outer_ground() -> void:
 func _build_dirt_path() -> void:
 	var segments := 44
 	var across := 5
-	var dirt := Color8(0xc4, 0x9a, 0x66).srgb_to_linear()
-	var dirt_dark := Color8(0xa8, 0x7f, 0x52).srgb_to_linear()
-	var grass_edge := Color8(0x7f, 0xa3, 0x5a).srgb_to_linear()
+	var dirt := Color8(0xdd, 0xd2, 0xb4).srgb_to_linear()
+	var dirt_dark := Color8(0xbe, 0xa8, 0x86).srgb_to_linear()
+	var grass_edge := Color8(0x9d, 0xaf, 0x9a).srgb_to_linear()
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var colors := PackedColorArray()
@@ -329,12 +329,12 @@ func _flat_disc(sector_count: int, rings: int, radius: float, y: float,
 func _build_pond() -> void:
 	# Sandy rim hugging the terrain.
 	var rim_mesh := _flat_disc(40, 3, POND_R + 0.9, 0.03, 0.03,
-			func(_t: float) -> Color: return Color8(0xd9, 0xc2, 0x8f).srgb_to_linear())
+			func(_t: float) -> Color: return Color8(0xe8, 0xdc, 0xc2).srgb_to_linear())
 	_add_mesh_instance("PondRim", rim_mesh, _std_mat(Color.WHITE, 1.0, true),
 			GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 	# Water with scrolling ripple bands + shimmer (TIME-driven shader).
-	var deep := Color(0.24, 0.56, 0.66, 0.85)
-	var shallow := Color(0.5, 0.83, 0.83, 0.85)
+	var deep := Color(0.32, 0.52, 0.6, 0.85)
+	var shallow := Color(0.62, 0.8, 0.83, 0.85)
 	var water_mesh := _flat_disc(44, 6, POND_R, WATER_LEVEL, -1.0,
 			func(t: float) -> Color: return deep.lerp(shallow, smoothstep(0.15, 1.0, t)))
 	var shader := Shader.new()
@@ -443,7 +443,7 @@ func _build_scatter() -> void:
 	tuft.radial_segments = 5
 	var grass_mat := _std_mat(Color.WHITE, 0.9)
 	_build_one_scatter("Grass", tuft, grass_mat, _scatter_spots(700, 52, 11),
-			Color8(0x7f, 0xa8, 0x5c).srgb_to_linear(), 1.0, 0.17, off)
+			Color8(0x9d, 0xaf, 0x9a).srgb_to_linear(), 1.0, 0.17, off)
 	# Low clover tufts, darker squashed spheres.
 	var clover := SphereMesh.new()
 	clover.radius = 0.11
@@ -451,7 +451,7 @@ func _build_scatter() -> void:
 	clover.radial_segments = 7
 	clover.rings = 4
 	_build_one_scatter("Clover", clover, _std_mat(Color.WHITE, 0.9),
-			_scatter_spots(150, 50, 83), Color8(0x4e, 0x7d, 0x43).srgb_to_linear(), 0.55, 0.06, off)
+			_scatter_spots(150, 50, 83), Color8(0x6e, 0x82, 0x72).srgb_to_linear(), 0.55, 0.06, off)
 	# Flowers: green stems + pastel heads.
 	var stems := CylinderMesh.new()
 	stems.top_radius = 0.02
@@ -463,8 +463,8 @@ func _build_scatter() -> void:
 	var stem_col := PackedColorArray()
 	var head_xf: Array[Transform3D] = []
 	var head_col := PackedColorArray()
-	var palette := [Color8(0xff, 0xb3, 0xd9).srgb_to_linear(), Color8(0x9a, 0xd9, 0xff).srgb_to_linear(), Color8(0xff, 0xd9, 0x7a).srgb_to_linear()]
-	var stem_base := Color8(0x4f, 0x7d, 0x46).srgb_to_linear()
+	var palette := [Color8(0xcb, 0xa9, 0xb4).srgb_to_linear(), Color8(0xf2, 0xeb, 0xdd).srgb_to_linear(), Color8(0xe8, 0xc8, 0x79).srgb_to_linear()]
+	var stem_base := Color8(0x7a, 0x8b, 0x78).srgb_to_linear()
 	for i in spots.size():
 		var spot: Dictionary = spots[i]
 		stem_xf.append(_scatter_basis(spot, 1.0, 0.25))
@@ -485,7 +485,7 @@ func _build_scatter() -> void:
 	peb.radial_segments = 7
 	peb.rings = 4
 	_build_one_scatter("Pebbles", peb, _std_mat(Color.WHITE, 0.95),
-			_scatter_spots(100, 50, 77), Color8(0x9a, 0x95, 0x8a).srgb_to_linear(), 0.6, 0.07,
+			_scatter_spots(100, 50, 77), Color8(0xa8, 0xa0, 0x94).srgb_to_linear(), 0.6, 0.07,
 			GeometryInstance3D.SHADOW_CASTING_SETTING_ON)
 
 
@@ -509,9 +509,9 @@ func _build_mountains() -> void:
 	cone.height = 1.0
 	cone.radial_segments = 5
 	_seed(31)
-	_build_mountain_ring("MountainsFar", cone, Color8(0x9f, 0xa9, 0xbd).srgb_to_linear(),
+	_build_mountain_ring("MountainsFar", cone, Color8(0xa8, 0xc0, 0xcf).srgb_to_linear(),
 			8, 0.0, 195.0, 240.0, 55.0, 105.0, 6.0)
-	_build_mountain_ring("MountainsNear", cone, Color8(0x66, 0x78, 0x8f).srgb_to_linear(),
+	_build_mountain_ring("MountainsNear", cone, Color8(0x74, 0x7e, 0x9d).srgb_to_linear(),
 			7, 0.3, 140.0, 175.0, 38.0, 72.0, 4.0)
 
 
