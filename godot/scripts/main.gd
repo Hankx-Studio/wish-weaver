@@ -1,169 +1,221 @@
+# Main: builds the world, runs interaction scan, owns UI helpers.
+class_name Main
 extends Node3D
-## Main-scene bootstrap: grounds NPCs, parks HeroF, wires NPC signals to
-## the StoryDirector, offers T-key hero swap, and kicks off the intro.
 
-const FLAVOR := {
-	"Poppy": ["The flowers hum when the tree is happy.", "(Poppy hums back, off-key.)"],
-	"Bram": [
-		"Mind the seedlings, traveler. Big boots, little sprouts.",
-		"Mabel's apples? Look for the glowing trees all over the meadow.",
-	],
-}
+static var I: Main
 
-var _hero_m: CharacterBody3D = null
-var _hero_f: CharacterBody3D = null
-var _using_m := true
+const MeadowScript := preload("res://scripts/meadow.gd")
+const TreeScript := preload("res://scripts/tree_of_life.gd")
 
+var player: Player
+var fairy: Fairy
+var hud: HUD
+var dlg: DialogueBox
+var spell: SpellBar
+var Meadow: Node3D
+var interactables: Array[Interactable] = []
+var current: Interactable
+var ending_shown := false
+
+static func ui() -> MainUI:
+	return I._ui
+
+static func player_pos() -> Vector3:
+	return I.player.global_position if I.player else Vector3.ZERO
+
+static func fx_burst(at: Vector3, color: Color) -> void:
+	I._burst(at, color)
+
+static func fairy_celebrate() -> void:
+	if I.fairy:
+		I.fairy.celebrate = 2.5
+
+static func on_spell_cast(d: Dictionary) -> void:
+	I._on_spell(d)
+
+static func on_intro_done() -> void:
+	if Game.stage == "intro" and Game.blessing_count() == 0 and not Game.met_rowan:
+		pass  # stay in intro stage until Rowan; objective guides
+
+var _ui: MainUI
 
 func _ready() -> void:
+	I = self
+	var md := MeadowScript.new()
+	md.name = "Meadow"
+	add_child(md)
+	md.build()
+	Meadow = md
+	_build_tree()
+	_build_player()
+	_build_npcs()
+	_build_pickups()
+	_build_fountain()
+	_build_ui()
+	_ui.say_intro_if_needed()
 	print("Main scene ready")
-	_hero_m = get_node_or_null("Traveler") as CharacterBody3D
-	_hero_f = get_node_or_null("HeroF") as CharacterBody3D
-	_snap_npcs_to_ground()
-	_park_hero_f()
-	_pin_player_refs()
-	_wire_npcs()
-	if _is_ambient():
+
+func _ui_add(c: CanvasLayer) -> void:
+	add_child(c)
+
+func _build_tree() -> void:
+	var tree := TreeScript.new()
+	tree.name = "TreeOfLife"
+	add_child(tree)
+	tree.build(Vector3(0, 0, -14))
+	interactables.append(tree._door)
+
+func _build_player() -> void:
+	player = Player.make()
+	player.position = Vector3(0, 0.5, 18)
+	add_child(player)
+	fairy = Fairy.make(player)
+	fairy.position = player.position + Vector3(1.5, 2.0, 0)
+	add_child(fairy)
+
+func _npc(nm: String, robe: Color, at: Vector3, dlg_lines: Array[String], hook: String = "") -> void:
+	var n := NPC.make(nm, robe, at, dlg_lines, hook)
+	add_child(n)
+	interactables.append(n)
+
+func _build_npcs() -> void:
+	_npc("Rowan", Color(0.45, 0.55, 0.75), Vector3(12.5, 0, 8.5), [
+		"Traveler! The meadow's lights went out in the night.",
+		"Three blessings sleep: Harvest, Water, and Heart.",
+		"Gather star-apples first — they glow near the paths.",
+	], "rowan")
+	_npc("Mabel", Color(0.75, 0.45, 0.4), Vector3(-12, 0, 12.2), [
+		"Welcome to my little stall, dear.",
+		"Take warmth with you — and do say hello to Ilsa in the plaza.",
+	], "mabel")
+	_npc("Ilsa", Color(0.55, 0.65, 0.45), Vector3(-3, 0, 2), [
+		"Mabel sent you? Then the plaza remembers kindness.",
+		"Take the Blessing of Heart. The Tree will feel it.",
+	], "ilsa")
+	_npc("Poppy", Color(0.8, 0.6, 0.7), Vector3(6, 0, -4), [
+		"I saw a light fall behind the Tree last night…",
+	])
+	_npc("Bram", Color(0.5, 0.5, 0.55), Vector3(-8, 0, -8), [
+		"Mind the old roots. They trip even the wind.",
+	])
+
+func _build_pickups() -> void:
+	for at in [Vector3(5, 0, 12), Vector3(-5, 0, 6), Vector3(3, 0, -9)]:
+		var a := StarApple.make(at)
+		add_child(a)
+		interactables.append(a)
+
+func _build_fountain() -> void:
+	var f := FountainInteract.make(Vector3(10, 0, 6))
+	add_child(f)
+	interactables.append(f)
+
+func _build_ui() -> void:
+	hud = HUD.make()
+	add_child(hud)
+	dlg = DialogueBox.make()
+	add_child(dlg)
+	spell = SpellBar.make()
+	add_child(spell)
+	var intro: IntroCards = null
+	if Game.stage == "intro" and not Game.met_rowan and Game.blessing_count() == 0:
+		intro = IntroCards.make()
+		add_child(intro)
+	_ui = MainUI.new(hud, dlg, spell, intro)
+
+func _process(_dt: float) -> void:
+	if _ui.intro != null and is_instance_valid(_ui.intro):
+		hud.hide_prompt()
 		return
-	var director := get_tree().get_first_node_in_group("story_director")
-	if director != null and (director as Object).has_method("start_story"):
-		(director as Object).call_deferred("start_story")
+	if Input.is_action_just_pressed("spell") and not dlg.active:
+		spell.toggle()
+		return
+	if dlg.active or spell.open:
+		hud.hide_prompt()
+		return
+	var best: Interactable = null
+	var best_d := 1e9
+	for it in interactables:
+		if not is_instance_valid(it):
+			continue
+		var d: float = player.global_position.distance_to(it.global_position)
+		if d < it.radius and d < best_d:
+			best_d = d
+			best = it
+	current = best
+	if current:
+		hud.show_prompt(current.prompt_text())
 	else:
-		push_warning("Main: no story_director found, story not started.")
+		hud.hide_prompt()
+	if Input.is_action_just_pressed("interact") and current:
+		current.interact(player)
+
+func _on_spell(d: Dictionary) -> void:
+	# Water blessing: any spell cast near the fountain.
+	if not Game.blessings["water"]:
+		var f := Vector3(10, 0, 6)
+		if player.global_position.distance_to(f) < 7.0:
+			Game.earn("water")
+			hud.flash("Blessing of Water received")
+
+func _burst(at: Vector3, color: Color) -> void:
+	var p := GPUParticles3D.new()
+	p.amount = 60
+	p.lifetime = 1.1
+	p.one_shot = true
+	p.explosiveness = 0.9
+	p.position = at
+	var pm := ParticleProcessMaterial.new()
+	pm.direction = Vector3(0, 1, 0)
+	pm.spread = 38.0
+	pm.initial_velocity_min = 2.5
+	pm.initial_velocity_max = 5.0
+	pm.gravity = Vector3(0, -2.5, 0)
+	pm.color = color
+	p.process_material = pm
+	var quad := SphereMesh.new()
+	quad.radius = 0.06
+	quad.height = 0.12
+	p.draw_pass_1 = quad
+	add_child(p)
+	p.emitting = true
+	var tw := create_tween()
+	tw.tween_interval(1.6)
+	tw.tween_callback(p.queue_free)
 
 
-## Landing backdrop (?mode=ambient): living scene, no intro or dialogue.
-func _is_ambient() -> bool:
-	if not OS.has_feature("web"):
-		return false
-	var bridge: Object = Engine.get_singleton("JavaScriptBridge")
-	if bridge == null:
-		return false
-	var mode: String = str(bridge.call("eval", "new URLSearchParams(location.search).get('mode')"))
-	return mode == "ambient"
+# Small facade so gameplay code calls Main.ui().say(...) etc.
+class MainUI:
+	var hud: HUD
+	var dlg: DialogueBox
+	var spell: SpellBar
+	var intro: IntroCards
 
+	func _init(h: HUD, d: DialogueBox, s: SpellBar, i: IntroCards) -> void:
+		hud = h
+		dlg = d
+		spell = s
+		intro = i
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		get_tree().quit()
-		return
-	if event is InputEventKey:
-		var k := event as InputEventKey
-		if k.pressed and not k.echo and k.physical_keycode == KEY_T:
-			swap_hero()
+	func say(lines: Array) -> void:
+		dlg.say(lines)
 
+	func flash(t: String) -> void:
+		hud.flash(t)
 
-## Swap the active hero (M <-> F). Safe when HeroF is missing.
-func swap_hero() -> void:
-	if _hero_m == null or _hero_f == null:
-		return
-	_using_m = not _using_m
-	var active := _hero_m if _using_m else _hero_f
-	var idle := _hero_f if _using_m else _hero_m
-	var swap_pos := active.global_position
-	active.global_position = idle.global_position + Vector3(0, 0.1, 0)
-	idle.global_position = swap_pos
-	for h in [_hero_m, _hero_f]:
-		var is_on: bool = h == active
-		h.set_physics_process(is_on)
-		h.visible = is_on
-		if is_on:
-			if not h.is_in_group("player"):
-				h.add_to_group("player")
-			if not h.is_in_group("current-player"):
-				h.add_to_group("current-player")
-		else:
-			h.remove_from_group("player")
-			h.remove_from_group("current-player")
-	var cam := get_node_or_null("FollowCamera")
-	if cam != null:
-		cam.set("target", active)
-	var im := get_tree().get_first_node_in_group("interact_manager")
-	if im != null:
-		im.set("player", active)
-	for s in get_tree().get_nodes_in_group("spirit"):
-		if (s as Object).has_method("set_target"):
-			s.call("set_target", active)
+	func refresh() -> void:
+		hud.refresh()
 
+	func open_spell() -> void:
+		spell.open_bar()
 
-## Batch A NPCs join "npcs" via script; batch B scenes declare "npc".
-func _npc_nodes() -> Array:
-	var out: Array = []
-	for n in get_tree().get_nodes_in_group("npc"):
-		if not out.has(n):
-			out.append(n)
-	for n in get_tree().get_nodes_in_group("npcs"):
-		if not out.has(n):
-			out.append(n)
-	return out
+	func say_intro_if_needed() -> void:
+		pass
 
-
-func _snap_npcs_to_ground() -> void:
-	var space := get_world_3d().direct_space_state
-	for npc in _npc_nodes():
-		var n := npc as Node3D
-		if n == null:
-			continue
-		var from: Vector3 = n.global_position + Vector3(0, 2.0, 0)
-		var query := PhysicsRayQueryParameters3D.create(from, from + Vector3(0, -8, 0))
-		if npc is CollisionObject3D:
-			query.exclude = [(npc as CollisionObject3D).get_rid()]
-		var hit := space.intersect_ray(query)
-		if not hit.is_empty():
-			n.global_position.y = (hit["position"] as Vector3).y
-
-
-func _park_hero_f() -> void:
-	if _hero_f == null:
-		return
-	_hero_f.remove_from_group("player")
-	_hero_f.remove_from_group("current-player")
-	_hero_f.set_physics_process(false)
-	_hero_f.visible = false
-	if _hero_m != null:
-		_hero_f.global_position = _hero_m.global_position + Vector3(0, -60, 0)
-
-
-## Pin follower refs to the active hero so they never depend on tree order.
-func _pin_player_refs() -> void:
-	if _hero_m == null:
-		return
-	var im := get_tree().get_first_node_in_group("interact_manager")
-	if im != null:
-		im.set("player", _hero_m)
-	for s in get_tree().get_nodes_in_group("spirit"):
-		if (s as Object).has_method("set_target"):
-			s.call("set_target", _hero_m)
-
-
-func _wire_npcs() -> void:
-	for npc in _npc_nodes():
-		var o := npc as Object
-		if o == null or not o.has_signal("interacted"):
-			continue
-		var npc_name := str(o.get("npc_name")) if o.get("npc_name") != null else ""
-		if not o.is_connected("interacted", _on_npc_interacted):
-			o.connect("interacted", _on_npc_interacted.bind(npc_name))
-
-
-func _on_npc_interacted(_npc: Node, npc_name: String) -> void:
-	var director := get_tree().get_first_node_in_group("story_director") as Object
-	if director == null:
-		return
-	match npc_name:
-		"Rowan":
-			director.call("talk_to_rowan")
-		"Mabel":
-			director.call("talk_to_mabel")
-		"Sage Ilsa":
-			director.call("talk_to_ilsa")
-		_:
-			_say_flavor(npc_name)
-
-
-func _say_flavor(npc_name: String) -> void:
-	if not FLAVOR.has(npc_name):
-		return
-	var box := get_tree().get_first_node_in_group("dialogue_box") as Object
-	if box != null and box.has_method("show_dialogue"):
-		box.call("show_dialogue", npc_name, (FLAVOR[npc_name] as Array).duplicate())
+	func show_ending() -> void:
+		dlg.say([
+			"The door opens onto warm light.",
+			"Harvest, Water, Heart — the meadow breathes again.",
+			"The meadow remembers light.",
+		])
+		Game.complete_game()

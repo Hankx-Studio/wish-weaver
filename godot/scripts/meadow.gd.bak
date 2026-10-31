@@ -1,0 +1,320 @@
+# Meadow: builds Moonleaf Meadow in code. Warm sky, soft hills, fountain plaza, stall.
+class_name Meadow
+extends Node3D
+
+const MEADOW_R := 42.0
+
+func build() -> void:
+	_build_sky()
+	_build_lights()
+	_build_ground()
+	_build_flora()
+	_build_fountain(Vector3(10, 0, 6))
+	_build_stall(Vector3(-12, 0, 10))
+	_build_lanterns()
+	_build_path()
+
+func _mat(color: Color, rough: float = 0.85, emission: Color = Color(0, 0, 0)) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = color
+	m.roughness = rough
+	if emission.a > 0.0 or emission.r + emission.g + emission.b > 0.0:
+		m.emission_enabled = true
+		m.emission = emission
+		m.emission_energy_multiplier = 1.5
+	return m
+
+func _build_sky() -> void:
+	var env := WorldEnvironment.new()
+	env.name = "WorldEnvironment"
+	var e := Environment.new()
+	var sky := Sky.new()
+	var psm := ProceduralSkyMaterial.new()
+	psm.sky_top_color = Color(0.35, 0.55, 0.85)
+	psm.sky_horizon_color = Color(0.75, 0.85, 0.95)
+	psm.ground_bottom_color = Color(0.3, 0.4, 0.3)
+	psm.ground_horizon_color = Color(0.75, 0.85, 0.9)
+	psm.sun_angle_max = 30.0
+	psm.sun_curve = 0.08
+	sky.sky_material = psm
+	e.background_mode = Environment.BG_SKY
+	e.sky = sky
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+	e.ambient_light_energy = 0.7
+	e.tonemap_mode = Environment.TONE_MAP_FILMIC
+	e.glow_enabled = true
+	e.glow_intensity = 0.4
+	e.fog_enabled = true
+	e.fog_light_color = Color(0.75, 0.85, 0.92)
+	e.fog_density = 0.008
+	add_child(env)
+
+func _build_lights() -> void:
+	var sun := DirectionalLight3D.new()
+	sun.name = "Sun"
+	sun.rotation_degrees = Vector3(-48, -35, 0)
+	sun.light_color = Color(1.0, 0.93, 0.8)
+	sun.light_energy = 1.1
+	sun.shadow_enabled = true
+	add_child(sun)
+	var fill := DirectionalLight3D.new()
+	fill.name = "Fill"
+	fill.rotation_degrees = Vector3(-30, 140, 0)
+	fill.light_color = Color(0.65, 0.75, 0.95)
+	fill.light_energy = 0.35
+	fill.shadow_enabled = false
+	add_child(fill)
+
+func _build_ground() -> void:
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(MEADOW_R * 2.4, MEADOW_R * 2.4)
+	plane.subdivide_width = 48
+	plane.subdivide_depth = 48
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1234
+	var hs := plane.size.x
+	# Displace via ArrayMeshEdit: sample plane verts through MeshDataTool.
+	var tmp := ArrayMesh.new()
+	tmp.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, plane.get_mesh_arrays())
+	var mdt := MeshDataTool.new()
+	mdt.create_from_surface(tmp, 0)
+	for i in mdt.get_vertex_count():
+		var v: Vector3 = mdt.get_vertex(i)
+		v.y = ground_height(v.x, v.z)
+		mdt.set_vertex(i, v)
+	tmp.clear_surfaces()
+	mdt.commit_to_surface(tmp)
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)
+	var ground := MeshInstance3D.new()
+	ground.name = "Ground"
+	ground.mesh = tmp
+	ground.material_override = _mat(Color(0.42, 0.62, 0.35))
+	add_child(ground)
+	var sb := StaticBody3D.new()
+	sb.name = "GroundBody"
+	var cs := CollisionShape3D.new()
+	var shape := HeightMapShape3D.new()
+	# Cheap flat collider at y=0 plus rim: use a big box; hills are visual-only near rim.
+	var box := BoxShape3D.new()
+	box.size = Vector3(MEADOW_R * 2.4, 1.0, MEADOW_R * 2.4)
+	cs.shape = box
+	cs.position.y = -0.5
+	sb.add_child(cs)
+	add_child(sb)
+	rng = rng  # seed kept for flora pass
+
+func ground_height(x: float, z: float) -> float:
+	# Flat inside the play bowl (matches the flat collider), hills outside.
+	var d := Vector2(x, z).length()
+	var k := smoothstep(20.0, 34.0, d)
+	var h := sin(x * 0.15) * cos(z * 0.13) * 0.7
+	h += sin(x * 0.05 + 1.7) * cos(z * 0.06 + 0.6) * 1.2
+	h *= k
+	if d > MEADOW_R * 0.7:
+		h += (d - MEADOW_R * 0.7) * 0.35  # rim hills
+	return h
+
+func _build_flora() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	# Grass tufts (crossed quads via MultiMesh).
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.5, 0.6)
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = quad
+	var count := 900
+	mm.instance_count = count
+	for i in count:
+		var a := rng.randf() * TAU
+		var r := 4.0 + rng.randf() * (MEADOW_R - 6.0)
+		var x := cos(a) * r
+		var z := sin(a) * r
+		var t := Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(x, ground_height(x, z) + 0.25, z))
+		mm.set_instance_transform(i, t)
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Grass"
+	mmi.multimesh = mm
+	mmi.material_override = _mat(Color(0.45, 0.68, 0.36))
+	add_child(mmi)
+	# Flowers: small emissive spheres scattered.
+	var fmesh := SphereMesh.new()
+	fmesh.radius = 0.09
+	fmesh.height = 0.18
+	var fmm := MultiMesh.new()
+	fmm.transform_format = MultiMesh.TRANSFORM_3D
+	fmm.mesh = fmesh
+	var fn := 140
+	fmm.instance_count = fn
+	var cols := [Color(1, 0.75, 0.8), Color(1, 0.95, 0.6), Color(0.8, 0.85, 1.0)]
+	for i in fn:
+		var a := rng.randf() * TAU
+		var r := 3.0 + rng.randf() * (MEADOW_R - 8.0)
+		var x := cos(a) * r
+		var z := sin(a) * r
+		fmm.set_instance_transform(i, Transform3D(Basis(), Vector3(x, ground_height(x, z) + 0.35, z)))
+	var fmi := MultiMeshInstance3D.new()
+	fmi.name = "Flowers"
+	fmi.multimesh = fmm
+	fmi.material_override = _mat(cols[0], 0.6, cols[0])
+	add_child(fmi)
+
+func _build_fountain(at: Vector3) -> void:
+	var root := Node3D.new()
+	root.name = "Fountain"
+	root.position = Vector3(at.x, ground_height(at.x, at.z), at.z)
+	add_child(root)
+	var stone := _mat(Color(0.75, 0.74, 0.7))
+	var base := MeshInstance3D.new()
+	var bc := CylinderMesh.new()
+	bc.top_radius = 2.2
+	bc.bottom_radius = 2.5
+	bc.height = 0.7
+	base.mesh = bc
+	base.position.y = 0.35
+	base.material_override = stone
+	root.add_child(base)
+	var water := MeshInstance3D.new()
+	var wc := CylinderMesh.new()
+	wc.top_radius = 1.9
+	wc.bottom_radius = 1.9
+	wc.height = 0.15
+	water.mesh = wc
+	water.position.y = 0.72
+	water.name = "Water"
+	var wm := StandardMaterial3D.new()
+	wm.albedo_color = Color(0.4, 0.7, 0.95, 0.85)
+	wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	wm.roughness = 0.15
+	wm.metallic = 0.3
+	water.material_override = wm
+	root.add_child(water)
+	var pillar := MeshInstance3D.new()
+	var pc := CylinderMesh.new()
+	pc.top_radius = 0.3
+	pc.bottom_radius = 0.4
+	pc.height = 1.8
+	pillar.mesh = pc
+	pillar.position.y = 1.2
+	pillar.material_override = stone
+	root.add_child(pillar)
+	var top := MeshInstance3D.new()
+	var tc := CylinderMesh.new()
+	tc.top_radius = 0.9
+	tc.bottom_radius = 0.5
+	tc.height = 0.3
+	top.mesh = tc
+	top.position.y = 2.1
+	top.material_override = stone
+	root.add_child(top)
+	var glow := MeshInstance3D.new()
+	var gs := SphereMesh.new()
+	gs.radius = 0.35
+	gs.height = 0.7
+	glow.mesh = gs
+	glow.position.y = 2.5
+	glow.name = "BlessingLight"
+	glow.material_override = _mat(Color(0.6, 0.85, 1.0), 0.4, Color(0.6, 0.85, 1.0))
+	glow.visible = Game.blessings["water"]
+	root.add_child(glow)
+	Game.blessing_earned.connect(func(id: String) -> void:
+		if id == "water":
+			glow.visible = true)
+
+func _build_stall(at: Vector3) -> void:
+	var root := Node3D.new()
+	root.name = "Stall"
+	root.position = Vector3(at.x, ground_height(at.x, at.z), at.z)
+	root.rotation.y = 0.5
+	add_child(root)
+	var wood := _mat(Color(0.55, 0.38, 0.25))
+	var cloth := _mat(Color(0.85, 0.45, 0.4))
+	for px in [-1.2, 1.2]:
+		for pz in [-0.9, 0.9]:
+			var post := MeshInstance3D.new()
+			var pm := BoxMesh.new()
+			pm.size = Vector3(0.15, 2.4, 0.15)
+			post.mesh = pm
+			post.position = Vector3(px, 1.2, pz)
+			post.material_override = wood
+			root.add_child(post)
+	var counter := MeshInstance3D.new()
+	var cm := BoxMesh.new()
+	cm.size = Vector3(2.8, 0.9, 1.4)
+	counter.mesh = cm
+	counter.position = Vector3(0, 0.45, 0)
+	counter.material_override = wood
+	root.add_child(counter)
+	var roof := MeshInstance3D.new()
+	var rm := BoxMesh.new()
+	rm.size = Vector3(3.4, 0.12, 2.6)
+	roof.mesh = rm
+	roof.position = Vector3(0, 2.5, 0)
+	roof.rotation.z = 0.06
+	roof.material_override = cloth
+	root.add_child(roof)
+	# Goods: glowing jars.
+	for i in 3:
+		var jar := MeshInstance3D.new()
+		var jm := SphereMesh.new()
+		jm.radius = 0.18
+		jm.height = 0.4
+		jar.mesh = jm
+		jar.position = Vector3(-0.8 + i * 0.8, 1.1, 0)
+		jar.material_override = _mat(Color(1.0, 0.85, 0.5), 0.3, Color(1.0, 0.8, 0.4))
+		root.add_child(jar)
+
+func _build_lanterns() -> void:
+	var spots := [Vector3(4, 0, -6), Vector3(-6, 0, -2), Vector3(14, 0, -4), Vector3(-4, 0, 14), Vector3(6, 0, 14)]
+	for s in spots:
+		var pole := MeshInstance3D.new()
+		var pm := CylinderMesh.new()
+		pm.top_radius = 0.06
+		pm.bottom_radius = 0.08
+		pm.height = 2.6
+		pole.mesh = pm
+		pole.position = Vector3(s.x, ground_height(s.x, s.z) + 1.3, s.z)
+		pole.material_override = _mat(Color(0.4, 0.3, 0.22))
+		add_child(pole)
+		var lamp := MeshInstance3D.new()
+		var lm := SphereMesh.new()
+		lm.radius = 0.25
+		lm.height = 0.5
+		lamp.mesh = lm
+		lamp.position = Vector3(s.x, ground_height(s.x, s.z) + 2.7, s.z)
+		lamp.material_override = _mat(Color(1.0, 0.9, 0.6), 0.4, Color(1.0, 0.85, 0.5))
+		add_child(lamp)
+		var light := OmniLight3D.new()
+		light.position = lamp.position
+		light.light_color = Color(1.0, 0.85, 0.6)
+		light.light_energy = 0.6
+		light.omni_range = 6.0
+		add_child(light)
+
+func _build_path() -> void:
+	# Sandy discs from spawn to fountain, stall, tree.
+	var pts: Array[Vector3] = []
+	var routes := [
+		[Vector3(0, 0, 18), Vector3(10, 0, 6)],
+		[Vector3(0, 0, 18), Vector3(-12, 0, 10)],
+		[Vector3(0, 0, 18), Vector3(0, 0, -14)],
+	]
+	for r in routes:
+		var a: Vector3 = r[0]
+		var b: Vector3 = r[1]
+		for i in 9:
+			pts.append(a.lerp(b, float(i) / 8.0))
+	var dm := CylinderMesh.new()
+	dm.top_radius = 0.9
+	dm.bottom_radius = 0.9
+	dm.height = 0.06
+	var sand := _mat(Color(0.85, 0.78, 0.6))
+	for p in pts:
+		var d := MeshInstance3D.new()
+		d.mesh = dm
+		d.position = Vector3(p.x, ground_height(p.x, p.z) + 0.05, p.z)
+		d.material_override = sand
+		add_child(d)
