@@ -9,7 +9,7 @@ var guard := 0.0
 const CARDS: Array[String] = [
 	"Moonleaf Meadow sleeps under a pale sky.\nThree blessings keep the old Tree breathing.",
 	"Tonight the lights went out — all but one small spirit.",
-	"You are the traveler. The meadow is waiting.",
+	"You are the traveler. The meadow is waiting.\nWASD move · Space jump · E interact · Q cast a spell",
 ]
 
 static func make() -> IntroCards:

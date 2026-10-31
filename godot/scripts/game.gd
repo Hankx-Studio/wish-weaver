@@ -16,6 +16,23 @@ var met_mabel: bool = false
 var met_ilsa: bool = false
 var spells_cast: int = 0
 var last_spell_source: String = ""  # meta_live | local_rule
+var gold: int = 120  # Moonleaf coins (shop)
+var inventory: Dictionary = {}  # item_id -> count
+
+func add_gold(n: int) -> void:
+	gold += n
+	save_progress()
+
+func spend_gold(n: int) -> bool:
+	if gold < n:
+		return false
+	gold -= n
+	save_progress()
+	return true
+
+func add_item(id: String, n: int = 1) -> void:
+	inventory[id] = int(inventory.get(id, 0)) + n
+	save_progress()
 
 func _ready() -> void:
 	load_progress()
@@ -78,6 +95,8 @@ func save_progress() -> void:
 	cfg.set_value("quest", "apples", apples)
 	cfg.set_value("quest", "met", [met_rowan, met_mabel, met_ilsa])
 	cfg.set_value("quest", "spells", spells_cast)
+	cfg.set_value("quest", "gold", gold)
+	cfg.set_value("quest", "inventory", inventory)
 	cfg.save(SAVE_PATH)
 
 func load_progress() -> void:
@@ -94,5 +113,7 @@ func load_progress() -> void:
 	met_mabel = bool(m[1]) if m.size() > 1 else false
 	met_ilsa = bool(m[2]) if m.size() > 2 else false
 	spells_cast = int(cfg.get_value("quest", "spells", 0))
+	gold = int(cfg.get_value("quest", "gold", 120))
+	inventory = cfg.get_value("quest", "inventory", {})
 	if stage == "done":
 		stage = "ending"  # allow re-entry to ending; completion re-saves

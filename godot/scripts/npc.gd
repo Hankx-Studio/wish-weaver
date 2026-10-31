@@ -80,6 +80,7 @@ func interact(_player: Node3D) -> void:
 			Game.set_stage("roam")
 		"mabel":
 			Game.met_mabel = true
+			Main.ui().queue_shop()
 		"ilsa":
 			Game.met_ilsa = true
 			if Game.met_mabel:

@@ -3,6 +3,7 @@ class_name HUD
 extends CanvasLayer
 
 var objective: Label
+var coins: Label
 var pips: HBoxContainer
 var prompt: Label
 var flash_label: Label
@@ -23,6 +24,16 @@ static func make() -> HUD:
 	obj.add_theme_constant_override("shadow_offset_y", 2)
 	h.add_child(obj)
 	h.objective = obj
+	var coin := Label.new()
+	coin.name = "Coins"
+	coin.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	coin.position = Vector2(24, 52)
+	coin.add_theme_font_size_override("font_size", 17)
+	coin.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	coin.add_theme_constant_override("outline_size", 5)
+	coin.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	h.add_child(coin)
+	h.coins = coin
 	var pip := HBoxContainer.new()
 	pip.name = "Pips"
 	pip.set_anchors_preset(Control.PRESET_TOP_RIGHT)
@@ -67,6 +78,18 @@ static func make() -> HUD:
 	src.add_theme_color_override("font_color", Color(1, 1, 1, 0.75))
 	h.add_child(src)
 	h.source_label = src
+	var controls := Label.new()
+	controls.name = "Controls"
+	controls.text = "WASD move · E interact · Q spell · Space jump"
+	controls.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	controls.position = Vector2(-470, -36)
+	controls.custom_minimum_size = Vector2(446, 24)
+	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	controls.add_theme_font_size_override("font_size", 14)
+	controls.add_theme_color_override("font_color", Color(1, 1, 1, 0.72))
+	controls.add_theme_constant_override("outline_size", 5)
+	controls.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+	h.add_child(controls)
 	return h
 
 func _ready() -> void:
@@ -76,6 +99,8 @@ func _ready() -> void:
 
 func refresh() -> void:
 	objective.text = Game.objective_text()
+	if coins:
+		coins.text = "Coins: %d" % Game.gold
 	for id in Game.BLESSINGS:
 		var l := pips.get_node("pip_" + id) as Label
 		if Game.blessings[id]:

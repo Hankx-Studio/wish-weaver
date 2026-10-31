@@ -2,6 +2,8 @@
 class_name DialogueBox
 extends CanvasLayer
 
+signal closed
+
 var panel: PanelContainer
 var label: Label
 var hint: Label
@@ -67,6 +69,8 @@ func say(dlg: Array) -> void:
 func _process(dt: float) -> void:
 	if not active:
 		return
+	if Main.I != null and Main.I.spell != null and Main.I.spell.open:
+		return  # typing a spell must not advance dialogue with stray E keys
 	guard = max(0.0, guard - dt)
 	var full: String = lines[idx]
 	if chars < full.length():
@@ -91,5 +95,6 @@ func _advance() -> void:
 func close() -> void:
 	active = false
 	panel.visible = false
+	closed.emit()
 	if Main.I != null:
 		Main.ui().refresh()

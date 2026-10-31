@@ -12,6 +12,8 @@ var fairy: Fairy
 var hud: HUD
 var dlg: DialogueBox
 var spell: SpellBar
+var shop: ShopUI
+var pending_shop := false
 var Meadow: Node3D
 var interactables: Array[Interactable] = []
 var current: Interactable
@@ -117,15 +119,27 @@ func _build_ui() -> void:
 	add_child(dlg)
 	spell = SpellBar.make()
 	add_child(spell)
+	shop = ShopUI.make()
+	add_child(shop)
 	var intro: IntroCards = null
 	if Game.stage == "intro" and not Game.met_rowan and Game.blessing_count() == 0:
 		intro = IntroCards.make()
 		add_child(intro)
-	_ui = MainUI.new(hud, dlg, spell, intro)
+	_ui = MainUI.new(hud, dlg, spell, intro, shop)
 
 func _process(_dt: float) -> void:
 	if _ui.intro != null and is_instance_valid(_ui.intro):
 		hud.hide_prompt()
+		return
+	if pending_shop and not dlg.active and not shop.is_open:
+		pending_shop = false
+		shop.open()
+		return
+	if shop.is_open:
+		hud.hide_prompt()
+		return
+	if spell.open and Input.is_action_just_pressed("ui_cancel"):
+		spell.toggle()
 		return
 	if Input.is_action_just_pressed("spell") and not dlg.active:
 		spell.toggle()
@@ -190,24 +204,34 @@ class MainUI:
 	var dlg: DialogueBox
 	var spell: SpellBar
 	var intro: IntroCards
+	var shop: ShopUI
 
-	func _init(h: HUD, d: DialogueBox, s: SpellBar, i: IntroCards) -> void:
+	func _init(h: HUD, d: DialogueBox, s: SpellBar, i: IntroCards, sh: ShopUI) -> void:
 		hud = h
 		dlg = d
 		spell = s
 		intro = i
+		shop = sh
 
 	func say(lines: Array) -> void:
 		dlg.say(lines)
 
 	func flash(t: String) -> void:
 		hud.flash(t)
+		hud.refresh()
 
 	func refresh() -> void:
 		hud.refresh()
 
 	func open_spell() -> void:
 		spell.open_bar()
+
+	func queue_shop() -> void:
+		if Main.I != null:
+			Main.I.pending_shop = true
+
+	func open_shop() -> void:
+		shop.open()
 
 	func say_intro_if_needed() -> void:
 		pass

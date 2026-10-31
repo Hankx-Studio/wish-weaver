@@ -9,6 +9,7 @@ func build() -> void:
 	_build_lights()
 	_build_ground()
 	_build_flora()
+	_build_trees()
 	_build_fountain(Vector3(10, 0, 6))
 	_build_stall(Vector3(-12, 0, 10))
 	_build_lanterns()
@@ -91,7 +92,31 @@ func _build_ground() -> void:
 	var ground := MeshInstance3D.new()
 	ground.name = "Ground"
 	ground.mesh = tmp
-	ground.material_override = _mat(Color(0.34, 0.55, 0.27))
+	# Two-tone green blend: seeded noise texture as albedo (generates async, tints in when ready).
+	var ground_noise := FastNoiseLite.new()
+	ground_noise.seed = 1234
+	ground_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	ground_noise.frequency = 0.06
+	ground_noise.fractal_type = FastNoiseLite.FRACTAL_FBM
+	ground_noise.fractal_octaves = 4
+	ground_noise.fractal_gain = 0.5
+	var ground_ramp := Gradient.new()
+	ground_ramp.set_color(0, Color(0.27, 0.46, 0.20))
+	ground_ramp.set_color(1, Color(0.47, 0.65, 0.32))
+	ground_ramp.add_point(0.5, Color(0.36, 0.56, 0.26))
+	var ground_tex := NoiseTexture2D.new()
+	ground_tex.width = 512
+	ground_tex.height = 512
+	ground_tex.noise = ground_noise
+	ground_tex.color_ramp = ground_ramp
+	ground_tex.seamless = true
+	ground_tex.generate_mipmaps = true
+	var ground_mat := StandardMaterial3D.new()
+	ground_mat.albedo_color = Color(1.0, 1.0, 1.0)
+	ground_mat.albedo_texture = ground_tex
+	ground_mat.roughness = 0.9
+	ground_mat.uv1_scale = Vector3(7.0, 7.0, 1.0)
+	ground.material_override = ground_mat
 	add_child(ground)
 	var sb := StaticBody3D.new()
 	sb.name = "GroundBody"
@@ -163,6 +188,134 @@ func _build_flora() -> void:
 	fmi.multimesh = fmm
 	fmi.material_override = _mat(cols[0], 0.6, cols[0])
 	add_child(fmi)
+
+func _dist_to_segment_2d(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var denom := ab.length_squared()
+	if denom == 0.0:
+		return p.distance_to(a)
+	var t := clampf((p - a).dot(ab) / denom, 0.0, 1.0)
+	return p.distance_to(a + ab * t)
+
+func _is_clear_for_tree(p: Vector2, placed: Array) -> bool:
+	# Spec minimums are 3m (paths/landmarks) and 2.5m (NPC/pickups); slightly
+	# larger margins are used so canopies do not swallow landmarks/NPCs.
+	if p.distance_to(Vector2(10, 6)) < 4.5:
+		return false  # fountain
+	if p.distance_to(Vector2(-12, 10)) < 4.0:
+		return false  # stall
+	if p.distance_to(Vector2(0, 18)) < 4.0:
+		return false  # spawn
+	if p.distance_to(Vector2(0, -14)) < 6.5:
+		return false  # Tree of Life (trunk + runestone ring at r=5.5)
+	var routes := [
+		[Vector2(0, 18), Vector2(10, 6)],
+		[Vector2(0, 18), Vector2(-12, 10)],
+		[Vector2(0, 18), Vector2(0, -14)],
+	]
+	for r in routes:
+		if _dist_to_segment_2d(p, r[0], r[1]) < 3.0:
+			return false
+	var npc_spots := [Vector2(12.5, 8.5), Vector2(-12, 12.2), Vector2(-3, 2), Vector2(6, -4), Vector2(-8, -8)]
+	for s in npc_spots:
+		if p.distance_to(s) < 3.0:
+			return false
+	var pickups := [Vector2(5, 12), Vector2(-5, 6), Vector2(3, -9)]
+	for s in pickups:
+		if p.distance_to(s) < 3.0:
+			return false
+	var lanterns := [Vector2(4, -6), Vector2(-6, -2), Vector2(14, -4), Vector2(-4, 14), Vector2(6, 14)]
+	for s in lanterns:
+		if p.distance_to(s) < 2.0:
+			return false
+	for q in placed:
+		if p.distance_to(q) < 3.0:
+			return false
+	return true
+
+func _build_trees() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20240817
+	# Shared low-poly meshes (created once, reused by every tree).
+	var trunk_mesh := CylinderMesh.new()
+	trunk_mesh.top_radius = 0.22
+	trunk_mesh.bottom_radius = 0.34
+	trunk_mesh.height = 1.8
+	trunk_mesh.radial_segments = 7
+	var canopy_mesh := SphereMesh.new()
+	canopy_mesh.radius = 1.35
+	canopy_mesh.height = 2.2
+	canopy_mesh.radial_segments = 8
+	canopy_mesh.rings = 4
+	# Shared materials only: 1 trunk + 3 canopy greens.
+	var trunk_mat := _mat(Color(0.42, 0.30, 0.20))
+	var canopy_mats := [
+		_mat(Color(0.22, 0.46, 0.20)),
+		_mat(Color(0.30, 0.55, 0.24)),
+		_mat(Color(0.38, 0.60, 0.28)),
+	]
+	var trunk_shape := CylinderShape3D.new()
+	trunk_shape.radius = 0.35
+	trunk_shape.height = 1.8
+	# Placement: outer ring r=20..40, then inner clusters r=8..16.
+	var placed: Array = []
+	var ring_target := 26
+	var attempts := 0
+	while placed.size() < ring_target and attempts < 600:
+		attempts += 1
+		var a := rng.randf() * TAU
+		var r := rng.randf_range(20.0, 40.0)
+		var p := Vector2(cos(a) * r, sin(a) * r)
+		if _is_clear_for_tree(p, placed):
+			placed.append(p)
+	var total_target := ring_target + 12
+	attempts = 0
+	while placed.size() < total_target and attempts < 800:
+		attempts += 1
+		var a2 := rng.randf() * TAU
+		var r2 := rng.randf_range(8.0, 16.0)
+		var p2 := Vector2(cos(a2) * r2, sin(a2) * r2)
+		if _is_clear_for_tree(p2, placed):
+			placed.append(p2)
+	var forest := Node3D.new()
+	forest.name = "Trees"
+	add_child(forest)
+	for i in placed.size():
+		var p: Vector2 = placed[i]
+		var tree := Node3D.new()
+		tree.name = "Tree%d" % [i]
+		tree.position = Vector3(p.x, ground_height(p.x, p.y) - 0.1, p.y)
+		tree.rotation.y = rng.randf() * TAU
+		var s := rng.randf_range(0.85, 1.45)
+		tree.scale = Vector3(s, s * rng.randf_range(0.9, 1.15), s)
+		forest.add_child(tree)
+		var trunk := MeshInstance3D.new()
+		trunk.name = "Trunk"
+		trunk.mesh = trunk_mesh
+		trunk.position.y = 0.9
+		trunk.material_override = trunk_mat
+		tree.add_child(trunk)
+		var canopy := MeshInstance3D.new()
+		canopy.name = "Canopy"
+		canopy.mesh = canopy_mesh
+		canopy.position = Vector3(0, 2.7, 0)
+		canopy.material_override = canopy_mats[i % canopy_mats.size()]
+		tree.add_child(canopy)
+		var crown := MeshInstance3D.new()
+		crown.name = "Crown"
+		crown.mesh = canopy_mesh
+		crown.position = Vector3(0.55, 3.55, 0.2)
+		crown.scale = Vector3(0.62, 0.62, 0.62)
+		crown.material_override = canopy_mats[(i + 1) % canopy_mats.size()]
+		tree.add_child(crown)
+		var body := StaticBody3D.new()
+		body.name = "TrunkBody"
+		var cs := CollisionShape3D.new()
+		cs.shape = trunk_shape
+		cs.position.y = 0.9
+		body.add_child(cs)
+		tree.add_child(body)
+	print("Meadow trees: ", placed.size())
 
 func _build_fountain(at: Vector3) -> void:
 	var root := Node3D.new()

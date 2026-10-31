@@ -26,3 +26,6 @@ tsconfig.tsbuildinfo
 
 # godot editor cache
 godot/.godot/
+
+# godot native builds
+godot/build/

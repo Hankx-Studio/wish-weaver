@@ -69,7 +69,7 @@ func _ready() -> void:
 		anim.play("Idle")
 
 func _physics_process(dt: float) -> void:
-	var frozen := Main.I != null and ((Main.I.spell != null and Main.I.spell.open) or (Main.I.dlg != null and Main.I.dlg.active))
+	var frozen := Main.I != null and ((Main.I.spell != null and Main.I.spell.open) or (Main.I.dlg != null and Main.I.dlg.active) or (Main.I.shop != null and Main.I.shop.is_open))
 	var iv := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	if frozen:
 		iv = Vector2.ZERO
@@ -90,6 +90,12 @@ func _physics_process(dt: float) -> void:
 	elif Input.is_action_just_pressed("jump") and not frozen:
 		velocity.y = JUMP
 	move_and_slide()
+	# Keep the traveler inside the playable meadow bowl (visual rim is backdrop).
+	var flat := Vector2(global_position.x, global_position.z)
+	var max_r := 38.5
+	if flat.length() > max_r:
+		flat = flat.normalized() * max_r
+		global_position = Vector3(flat.x, global_position.y, flat.y)
 	# Gentle camera yaw drift toward movement heading.
 	var pivot := get_node("CamPivot") as Node3D
 	var want := atan2(-velocity.x, -velocity.z) if Vector2(velocity.x, velocity.z).length() > 1.0 else cam_yaw
