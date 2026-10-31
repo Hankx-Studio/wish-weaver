@@ -11,23 +11,23 @@
 ;   L2 (-5, 9)      -> world (13, -21)    L5 (-2.7, 10.2)  -> world (15.3, -19.8)
 
 [sub_resource type="StandardMaterial3D" id="mat_red"]
-albedo_color = Color(0.784, 0.243, 0.18, 1)
+albedo_color = Color(0.78, 0.69, 0.55, 1)
 roughness = 0.55
 
 [sub_resource type="StandardMaterial3D" id="mat_dark"]
-albedo_color = Color(0.18, 0.165, 0.15, 1)
+albedo_color = Color(0.15, 0.17, 0.28, 1)
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="mat_darkwood"]
-albedo_color = Color(0.373, 0.255, 0.157, 1)
+albedo_color = Color(0.44, 0.39, 0.32, 1)
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="mat_stone"]
-albedo_color = Color(0.561, 0.545, 0.51, 1)
+albedo_color = Color(0.78, 0.69, 0.55, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="mat_core"]
-albedo_color = Color(1, 0.831, 0.537, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 emission_enabled = true
 emission = Color(1, 0.62, 0.28, 1)
 emission_energy_multiplier = 2.0

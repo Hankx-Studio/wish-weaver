@@ -21,8 +21,8 @@ var _glass_mats: Array[StandardMaterial3D] = []
 var _halo_mats: Array[StandardMaterial3D] = []
 var _bulb_mat: StandardMaterial3D = null
 var _blossoms: Array[Color] = [
-	Color8(242, 160, 181).srgb_to_linear(), Color8(246, 196, 83).srgb_to_linear(), Color8(143, 184, 246).srgb_to_linear(),
-	Color8(255, 255, 255).srgb_to_linear(), Color8(232, 140, 160).srgb_to_linear(), Color8(246, 160, 92).srgb_to_linear(),
+	Color8(203, 169, 180).srgb_to_linear(), Color8(232, 200, 121).srgb_to_linear(), Color8(168, 192, 207).srgb_to_linear(),
+	Color8(242, 235, 221).srgb_to_linear(), Color8(203, 169, 180).srgb_to_linear(), Color8(232, 200, 121).srgb_to_linear(),
 ]
 
 
@@ -90,7 +90,7 @@ func _build_foam_arcs() -> void:
 	foam.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	foam.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	foam.cull_mode = BaseMaterial3D.CULL_DISABLED
-	foam.albedo_color = Color(0.918, 0.969, 1.0, 0.75)
+	foam.albedo_color = Color(0.82, 0.89, 0.9, 0.75)
 	var mesh := _make_ring_arc(1.7, 1.95, 24, PI * 0.7)
 	for i in 2:
 		var arc := MeshInstance3D.new()
@@ -117,7 +117,7 @@ func _build_string_lights() -> void:
 		return
 	var wire_mat := StandardMaterial3D.new()
 	wire_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	wire_mat.albedo_color = Color(0.169, 0.149, 0.125)
+	wire_mat.albedo_color = Color(0.15, 0.17, 0.28)
 	var wires := ImmediateMesh.new()
 	wires.surface_begin(Mesh.PRIMITIVE_LINES, wire_mat)
 	var bulb_points: Array[Vector3] = []
@@ -143,9 +143,9 @@ func _build_string_lights() -> void:
 	wires_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	group.add_child(wires_mi)
 	_bulb_mat = StandardMaterial3D.new()
-	_bulb_mat.albedo_color = Color(1.0, 0.769, 0.416)
+	_bulb_mat.albedo_color = Color(0.8, 0.58, 0.2)
 	_bulb_mat.emission_enabled = true
-	_bulb_mat.emission = Color(1.0, 0.769, 0.416)
+	_bulb_mat.emission = Color(0.8, 0.58, 0.2)
 	_bulb_mat.emission_energy_multiplier = 1.3
 	var bulb_mesh := SphereMesh.new()
 	bulb_mesh.radius = 0.07
@@ -176,7 +176,7 @@ func _build_flowers() -> void:
 	leaf_mesh.radial_segments = 6
 	leaf_mesh.rings = 4
 	var leaf_mat := StandardMaterial3D.new()
-	leaf_mat.albedo_color = Color(0.373, 0.561, 0.306)
+	leaf_mat.albedo_color = Color(0.34, 0.43, 0.32)
 	leaf_mat.roughness = 0.9
 	var leaves := MultiMesh.new()
 	leaves.transform_format = MultiMesh.TRANSFORM_3D

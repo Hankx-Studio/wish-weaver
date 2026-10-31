@@ -1,154 +1,180 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/spirit.gd" id="1"]
 
-[sub_resource type="StandardMaterial3D" id="mat_core"]
-albedo_color = Color(1, 0.93, 0.78, 1)
-roughness = 0.35
-emission_enabled = true
-emission = Color(1, 0.9, 0.7, 1)
-emission_energy_multiplier = 1.4
+[sub_resource type="StandardMaterial3D" id="mat_skin"]
+albedo_color = Color(0.93, 0.85, 0.78, 1)
+roughness = 0.85
 
-[sub_resource type="StandardMaterial3D" id="mat_halo"]
+[sub_resource type="StandardMaterial3D" id="mat_bud"]
+albedo_color = Color(0.93, 0.91, 0.87, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_dress"]
+albedo_color = Color(0.6, 0.4, 0.46, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_leaf"]
+albedo_color = Color(0.34, 0.43, 0.32, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="mat_wing"]
 transparency = 1
-shading_mode = 0
-blend_mode = 1
+albedo_color = Color(0.5, 0.65, 0.72, 0.8)
 cull_mode = 2
-albedo_color = Color(1, 0.85, 0.55, 0.22)
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="mat_core"]
+albedo_color = Color(0.8, 0.58, 0.2, 1)
+emission_enabled = true
+emission = Color(0.8, 0.58, 0.2, 1)
+emission_energy_multiplier = 1.5
 
 [sub_resource type="StandardMaterial3D" id="mat_dark"]
-albedo_color = Color(0.05, 0.04, 0.05, 1)
-roughness = 0.3
+albedo_color = Color(0.12, 0.1, 0.12, 1)
+roughness = 0.6
 
-[sub_resource type="StandardMaterial3D" id="mat_blush"]
-albedo_color = Color(0.95, 0.45, 0.45, 1)
-roughness = 0.5
-emission_enabled = true
-emission = Color(0.9, 0.3, 0.3, 1)
-emission_energy_multiplier = 0.4
+[sub_resource type="CapsuleMesh" id="mesh_body"]
+material = SubResource("mat_skin")
+radius = 0.06
+height = 0.16
 
-[sub_resource type="StandardMaterial3D" id="mat_spark"]
-albedo_color = Color(1, 0.95, 0.75, 1)
-roughness = 0.3
-emission_enabled = true
-emission = Color(1, 0.95, 0.75, 1)
-emission_energy_multiplier = 1.0
+[sub_resource type="CylinderMesh" id="mesh_dress"]
+material = SubResource("mat_dress")
+top_radius = 0.055
+bottom_radius = 0.11
+height = 0.16
 
-[sub_resource type="SphereMesh" id="mesh_core"]
-material = SubResource("mat_core")
-radius = 0.3
-height = 0.6
-radial_segments = 20
-rings = 14
+[sub_resource type="SphereMesh" id="mesh_shoulder"]
+material = SubResource("mat_leaf")
+radius = 0.035
+height = 0.07
 
-[sub_resource type="CylinderMesh" id="mesh_tip"]
-material = SubResource("mat_core")
-top_radius = 0.0
-bottom_radius = 0.13
-height = 0.34
-radial_segments = 12
+[sub_resource type="SphereMesh" id="mesh_head"]
+material = SubResource("mat_skin")
+radius = 0.075
+height = 0.15
 
-[sub_resource type="SphereMesh" id="mesh_halo"]
-material = SubResource("mat_halo")
-radius = 0.48
-height = 0.96
-radial_segments = 12
-rings = 8
+[sub_resource type="SphereMesh" id="mesh_hair"]
+material = SubResource("mat_bud")
+radius = 0.085
+height = 0.17
 
 [sub_resource type="SphereMesh" id="mesh_eye"]
 material = SubResource("mat_dark")
-radius = 0.055
-height = 0.11
-radial_segments = 10
-rings = 6
+radius = 0.012
+height = 0.024
 
-[sub_resource type="SphereMesh" id="mesh_blush"]
-material = SubResource("mat_blush")
-radius = 0.05
-height = 0.1
-radial_segments = 8
-rings = 6
-
-[sub_resource type="SphereMesh" id="mesh_nub"]
+[sub_resource type="SphereMesh" id="mesh_core"]
 material = SubResource("mat_core")
-radius = 0.075
-height = 0.15
-radial_segments = 8
-rings = 6
+radius = 0.025
+height = 0.05
 
-[sub_resource type="SphereMesh" id="mesh_spark"]
-material = SubResource("mat_spark")
-radius = 0.03
-height = 0.06
-radial_segments = 6
-rings = 4
+[sub_resource type="CapsuleMesh" id="mesh_arm"]
+material = SubResource("mat_skin")
+radius = 0.018
+height = 0.1
 
-[sub_resource type="ParticleProcessMaterial" id="pmm_sparkle"]
-emission_shape = 1
-emission_sphere_radius = 0.4
-direction = Vector3(0, 1, 0)
-spread = 30.0
-initial_velocity_min = 0.3
-initial_velocity_max = 0.8
-gravity = Vector3(0, 0.5, 0)
-scale_min = 0.5
-scale_max = 1.0
-color = Color(1, 0.93, 0.7, 1)
+[sub_resource type="SphereMesh" id="mesh_foot"]
+material = SubResource("mat_skin")
+radius = 0.02
+height = 0.04
+
+[sub_resource type="PlaneMesh" id="mesh_wing_up"]
+material = SubResource("mat_wing")
+size = Vector2(0.16, 0.28)
+
+[sub_resource type="PlaneMesh" id="mesh_wing_lo"]
+material = SubResource("mat_wing")
+size = Vector2(0.13, 0.2)
 
 [node name="Spirit" type="Node3D" groups=["spirit"]]
 script = ExtResource("1")
-target_path = NodePath("../Player")
 
 [node name="Rig" type="Node3D" parent="."]
 
-[node name="Core" type="MeshInstance3D" parent="Rig"]
-scale = Vector3(1, 1.25, 0.95)
-mesh = SubResource("mesh_core")
+[node name="Body" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0, 0.22, 0)
+mesh = SubResource("mesh_body")
 
-[node name="Tip" type="MeshInstance3D" parent="Rig"]
-position = Vector3(0, 0.48, 0)
-mesh = SubResource("mesh_tip")
+[node name="Dress" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0, 0.16, 0)
+mesh = SubResource("mesh_dress")
 
-[node name="Halo" type="MeshInstance3D" parent="Rig"]
-cast_shadow = 0
-mesh = SubResource("mesh_halo")
+[node name="ShoulderL" type="MeshInstance3D" parent="Rig"]
+position = Vector3(-0.07, 0.28, 0)
+mesh = SubResource("mesh_shoulder")
+
+[node name="ShoulderR" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0.07, 0.28, 0)
+mesh = SubResource("mesh_shoulder")
+
+[node name="Head" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0, 0.36, 0)
+mesh = SubResource("mesh_head")
+
+[node name="BudHair" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0, 0.385, -0.01)
+mesh = SubResource("mesh_hair")
 
 [node name="EyeL" type="MeshInstance3D" parent="Rig"]
-position = Vector3(-0.12, 0.06, 0.24)
-scale = Vector3(1, 1.35, 0.55)
+position = Vector3(-0.03, 0.365, 0.065)
 mesh = SubResource("mesh_eye")
 
 [node name="EyeR" type="MeshInstance3D" parent="Rig"]
-position = Vector3(0.12, 0.06, 0.24)
-scale = Vector3(1, 1.35, 0.55)
+position = Vector3(0.03, 0.365, 0.065)
 mesh = SubResource("mesh_eye")
 
-[node name="BlushL" type="MeshInstance3D" parent="Rig"]
-position = Vector3(-0.2, -0.08, 0.19)
-scale = Vector3(1, 0.6, 0.5)
-mesh = SubResource("mesh_blush")
+[node name="Core" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0, 0.27, 0.055)
+mesh = SubResource("mesh_core")
 
-[node name="BlushR" type="MeshInstance3D" parent="Rig"]
-position = Vector3(0.2, -0.08, 0.19)
-scale = Vector3(1, 0.6, 0.5)
-mesh = SubResource("mesh_blush")
+[node name="ArmL" type="MeshInstance3D" parent="Rig"]
+position = Vector3(-0.085, 0.24, 0)
+rotation = Vector3(0, 0, 0.3)
+mesh = SubResource("mesh_arm")
 
-[node name="NubL" type="MeshInstance3D" parent="Rig"]
-position = Vector3(-0.3, -0.06, 0)
-mesh = SubResource("mesh_nub")
+[node name="ArmR" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0.085, 0.24, 0)
+rotation = Vector3(0, 0, -0.3)
+mesh = SubResource("mesh_arm")
 
-[node name="NubR" type="MeshInstance3D" parent="Rig"]
-position = Vector3(0.3, -0.06, 0)
-mesh = SubResource("mesh_nub")
+[node name="FootL" type="MeshInstance3D" parent="Rig"]
+position = Vector3(-0.03, 0.06, 0)
+mesh = SubResource("mesh_foot")
 
-[node name="Glow" type="OmniLight3D" parent="."]
-light_color = Color(1, 0.9, 0.7, 1)
-light_energy = 0.7
-omni_range = 3.0
+[node name="FootR" type="MeshInstance3D" parent="Rig"]
+position = Vector3(0.03, 0.06, 0)
+mesh = SubResource("mesh_foot")
 
-[node name="Sparkles" type="GPUParticles3D" parent="."]
-amount = 16
-lifetime = 1.6
-visibility_aabb = AABB(-1, -1, -1, 2, 3, 2)
-process_material = SubResource("pmm_sparkle")
-draw_pass_1 = SubResource("mesh_spark")
+[node name="WingUL" type="Node3D" parent="Rig"]
+position = Vector3(-0.02, 0.3, -0.05)
+rotation = Vector3(0, 0.35, 0.55)
+
+[node name="Mesh" type="MeshInstance3D" parent="Rig/WingUL"]
+position = Vector3(0, 0.14, 0)
+mesh = SubResource("mesh_wing_up")
+
+[node name="WingUR" type="Node3D" parent="Rig"]
+position = Vector3(0.02, 0.3, -0.05)
+rotation = Vector3(0, -0.35, -0.55)
+
+[node name="Mesh" type="MeshInstance3D" parent="Rig/WingUR"]
+position = Vector3(0, 0.14, 0)
+mesh = SubResource("mesh_wing_up")
+
+[node name="WingLL" type="Node3D" parent="Rig"]
+position = Vector3(-0.02, 0.28, -0.05)
+rotation = Vector3(0, 0.35, 2.59)
+
+[node name="Mesh" type="MeshInstance3D" parent="Rig/WingLL"]
+position = Vector3(0, 0.1, 0)
+mesh = SubResource("mesh_wing_lo")
+
+[node name="WingLR" type="Node3D" parent="Rig"]
+position = Vector3(0.02, 0.28, -0.05)
+rotation = Vector3(0, -0.35, -2.59)
+
+[node name="Mesh" type="MeshInstance3D" parent="Rig/WingLR"]
+position = Vector3(0, 0.1, 0)
+mesh = SubResource("mesh_wing_lo")

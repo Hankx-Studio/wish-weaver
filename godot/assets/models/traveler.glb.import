@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dushkj25if2u4"
-path="res://.godot/imported/Mage.glb-2caae49cc5ed21baa55d8e728f36e9ba.scn"
+uid="uid://dflx6plii5581"
+path="res://.godot/imported/traveler.glb-ec19b42e9820684f1734b156f78ed826.scn"
 
 [deps]
 
-source_file="res://characters/heroes/Mage.glb"
-dest_files=["res://.godot/imported/Mage.glb-2caae49cc5ed21baa55d8e728f36e9ba.scn"]
+source_file="res://assets/models/traveler.glb"
+dest_files=["res://.godot/imported/traveler.glb-ec19b42e9820684f1734b156f78ed826.scn"]
 
 [params]
 

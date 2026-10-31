@@ -312,7 +312,7 @@ func _build_ui() -> void:
 		_end_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_end_title.autowrap_mode = TextServer.AUTOWRAP_WORD
 		_end_title.add_theme_font_size_override("font_size", 44)
-		_end_title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.6))
+		_end_title.add_theme_color_override("font_color", Color(0.95, 0.78, 0.42))
 		evbox.add_child(_end_title)
 	if _end_body == null:
 		_end_body = Label.new()

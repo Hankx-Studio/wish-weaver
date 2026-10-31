@@ -3,29 +3,29 @@
 [ext_resource type="Script" path="res://scripts/plaza.gd" id="1"]
 
 [sub_resource type="StandardMaterial3D" id="mat_stone"]
-albedo_color = Color(0.604, 0.576, 0.541, 1)
+albedo_color = Color(0.74, 0.66, 0.54, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="mat_stone_dark"]
-albedo_color = Color(0.482, 0.463, 0.427, 1)
+albedo_color = Color(0.7, 0.62, 0.5, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="mat_wood"]
-albedo_color = Color(0.541, 0.384, 0.22, 1)
+albedo_color = Color(0.55, 0.49, 0.39, 1)
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="mat_dark_wood"]
-albedo_color = Color(0.373, 0.255, 0.157, 1)
+albedo_color = Color(0.44, 0.39, 0.32, 1)
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="mat_iron"]
-albedo_color = Color(0.227, 0.204, 0.188, 1)
+albedo_color = Color(0.24, 0.26, 0.38, 1)
 metallic = 0.35
 roughness = 0.55
 
 [sub_resource type="StandardMaterial3D" id="mat_water"]
 transparency = 1
-albedo_color = Color(0.373, 0.722, 0.902, 0.9)
+albedo_color = Color(0.45, 0.65, 0.72, 0.9)
 metallic = 0.1
 roughness = 0.25
 emission_enabled = true
@@ -33,10 +33,10 @@ emission = Color(0.093, 0.18, 0.226, 1)
 
 [sub_resource type="StandardMaterial3D" id="mat_lamp_glass"]
 transparency = 1
-albedo_color = Color(1, 0.831, 0.537, 0.95)
+albedo_color = Color(0.8, 0.58, 0.2, 0.95)
 roughness = 0.4
 emission_enabled = true
-emission = Color(1, 0.831, 0.537, 1)
+emission = Color(0.8, 0.58, 0.2, 1)
 emission_energy_multiplier = 1.6
 
 [sub_resource type="StandardMaterial3D" id="mat_halo"]
@@ -44,13 +44,13 @@ transparency = 1
 shading_mode = 0
 blend_mode = 1
 cull_mode = 2
-albedo_color = Color(1, 0.769, 0.416, 0.28)
+albedo_color = Color(0.8, 0.58, 0.2, 0.28)
 
 [sub_resource type="StandardMaterial3D" id="mat_spray"]
-albedo_color = Color(0.918, 0.969, 1, 1)
+albedo_color = Color(0.82, 0.89, 0.9, 1)
 roughness = 0.3
 emission_enabled = true
-emission = Color(0.918, 0.969, 1, 1)
+emission = Color(0.82, 0.89, 0.9, 1)
 emission_energy_multiplier = 0.6
 
 [sub_resource type="CylinderMesh" id="mesh_floor"]
@@ -221,7 +221,7 @@ initial_velocity_max = 3.6
 gravity = Vector3(0, -4.5, 0)
 scale_min = 0.6
 scale_max = 1.2
-color = Color(0.918, 0.969, 1, 1)
+color = Color(0.82, 0.89, 0.9, 1)
 
 [node name="Plaza" type="Node3D"]
 script = ExtResource("1")

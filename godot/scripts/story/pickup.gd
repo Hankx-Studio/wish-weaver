@@ -80,10 +80,10 @@ func _build_visual() -> Node3D:
 	body.rings = 8
 	apple.mesh = body
 	var skin := StandardMaterial3D.new()
-	skin.albedo_color = Color8(235, 80, 50).srgb_to_linear()
+	skin.albedo_color = Color8(232, 200, 121).srgb_to_linear()
 	skin.roughness = 0.35
 	skin.emission_enabled = true
-	skin.emission = Color8(255, 150, 60).srgb_to_linear()
+	skin.emission = Color8(232, 200, 121).srgb_to_linear()
 	skin.emission_energy_multiplier = 0.6
 	apple.material_override = skin
 	root.add_child(apple)
@@ -95,7 +95,7 @@ func _build_visual() -> Node3D:
 	stem_mesh.height = 0.18
 	stem.mesh = stem_mesh
 	var bark := StandardMaterial3D.new()
-	bark.albedo_color = Color8(101, 67, 33).srgb_to_linear()
+	bark.albedo_color = Color8(110, 100, 82).srgb_to_linear()
 	bark.roughness = 0.9
 	stem.material_override = bark
 	stem.position = Vector3(0, 0.26, 0)
@@ -109,7 +109,7 @@ func _build_visual() -> Node3D:
 	leaf_mesh.rings = 4
 	leaf.mesh = leaf_mesh
 	var leaf_mat := StandardMaterial3D.new()
-	leaf_mat.albedo_color = Color8(90, 180, 80).srgb_to_linear()
+	leaf_mat.albedo_color = Color8(157, 175, 154).srgb_to_linear()
 	leaf_mat.roughness = 0.7
 	leaf.material_override = leaf_mat
 	leaf.position = Vector3(0.1, 0.32, 0)
@@ -127,7 +127,7 @@ func _build_visual() -> Node3D:
 	var halo_mat := StandardMaterial3D.new()
 	halo_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	halo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	halo_mat.albedo_color = Color(1.0, 0.8, 0.4, 0.22)
+	halo_mat.albedo_color = Color(0.8, 0.58, 0.2, 0.22)
 	halo.material_override = halo_mat
 	root.add_child(halo)
 	return root
@@ -152,17 +152,26 @@ func _build_burst() -> GPUParticles3D:
 	mat.gravity = Vector3(0, -4, 0)
 	mat.scale_min = 0.5
 	mat.scale_max = 1.2
-	mat.color = Color(1.0, 0.8, 0.4)
+	mat.color = Color(0.8, 0.58, 0.2)
 	p.process_material = mat
-	var dot := SphereMesh.new()
-	dot.radius = 0.06
-	dot.height = 0.12
-	dot.radial_segments = 6
-	dot.rings = 4
 	var dot_mat := StandardMaterial3D.new()
 	dot_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	dot_mat.albedo_color = Color8(255, 200, 100).srgb_to_linear()
-	p.draw_pass_1 = dot
+	dot_mat.albedo_color = Color8(232, 200, 121).srgb_to_linear()
+	if ResourceLoader.exists("res://assets/fx/petal_alpha.png"):
+		var quad := QuadMesh.new()
+		quad.size = Vector2(0.14, 0.14)
+		var tex := load("res://assets/fx/petal_alpha.png") as Texture2D
+		dot_mat.albedo_texture = tex
+		dot_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		dot_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		p.draw_pass_1 = quad
+	else:
+		var dot := SphereMesh.new()
+		dot.radius = 0.06
+		dot.height = 0.12
+		dot.radial_segments = 6
+		dot.rings = 4
+		p.draw_pass_1 = dot
 	p.material_override = dot_mat
 	p.position.y = 0.6
 	add_child(p)

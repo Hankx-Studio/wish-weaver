@@ -7,15 +7,15 @@ albedo_color = Color(0.855, 0.548, 0.344, 1)
 roughness = 0.7
 
 [sub_resource type="StandardMaterial3D" id="mat_yellow"]
-albedo_color = Color(0.915, 0.72, 0.224, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="mat_green"]
-albedo_color = Color(0.115, 0.224, 0.115, 1)
+albedo_color = Color(0.25, 0.33, 0.24, 1)
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="mat_straw"]
-albedo_color = Color(0.736, 0.518, 0.224, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="mat_brown"]
@@ -23,15 +23,15 @@ albedo_color = Color(0.194, 0.069, 0.021, 1)
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="mat_blonde"]
-albedo_color = Color(0.797, 0.548, 0.224, 1)
+albedo_color = Color(0.8, 0.58, 0.2, 1)
 roughness = 0.7
 
 [sub_resource type="StandardMaterial3D" id="mat_pink"]
-albedo_color = Color(0.872, 0.305, 0.46, 1)
+albedo_color = Color(0.6, 0.4, 0.46, 1)
 roughness = 0.7
 
 [sub_resource type="StandardMaterial3D" id="mat_can"]
-albedo_color = Color(0.264, 0.376, 0.43, 1)
+albedo_color = Color(0.28, 0.38, 0.44, 1)
 metallic = 0.45
 roughness = 0.45
 

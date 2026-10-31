@@ -17,7 +17,7 @@ var _using_m := true
 
 func _ready() -> void:
 	print("Main scene ready")
-	_hero_m = get_node_or_null("HeroM") as CharacterBody3D
+	_hero_m = get_node_or_null("Traveler") as CharacterBody3D
 	_hero_f = get_node_or_null("HeroF") as CharacterBody3D
 	_snap_npcs_to_ground()
 	_park_hero_f()
