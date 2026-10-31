@@ -7,7 +7,15 @@ import { MountGuard } from './mountGuard';
 // Owns the three.js application lifecycle: create on mount, destroy on unmount.
 // Keyboard (WASD/arrows + Space), drag-to-orbit (in scene), and a touch
 // joystick + jump button feed screen-space input into the game.
-export default function GameCanvas({ onReady }: { onReady: (game: Game | null) => void }) {
+export default function GameCanvas({
+  onReady,
+  layout = 'card',
+}: {
+  onReady: (game: Game | null) => void;
+  /** 'fill' bleeds to the parent box (fullscreen play); default keeps the card. */
+  layout?: 'card' | 'fill';
+}) {
+  const fill = layout === 'fill';
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Game | null>(null);
   const guardRef = useRef<MountGuard | null>(null);
@@ -104,13 +112,13 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={fill ? { position: 'absolute', inset: 0 } : { position: 'relative' }}>
       <div
         ref={hostRef}
         style={{
           width: '100%',
-          height: 'clamp(340px, 62vh, 600px)',
-          borderRadius: '12px',
+          height: fill ? '100%' : 'clamp(340px, 62vh, 600px)',
+          borderRadius: fill ? 0 : '12px',
           overflow: 'hidden',
           backgroundColor: '#7fb2e5',
         }}
@@ -130,7 +138,7 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
             lineHeight: 1.6,
             color: '#7a2e1d',
             backgroundColor: '#f3e2d8',
-            borderRadius: '12px',
+            borderRadius: fill ? 0 : '12px',
           }}
         >
           The game canvas failed to start: {bootError}. Please screenshot this and your
@@ -140,9 +148,9 @@ export default function GameCanvas({ onReady }: { onReady: (game: Game | null) =
       <div
         style={{
           position: 'absolute',
-          left: '12px',
-          right: '12px',
-          bottom: '12px',
+          left: 'max(12px, env(safe-area-inset-left))',
+          right: 'max(12px, env(safe-area-inset-right))',
+          bottom: fill ? 'calc(96px + env(safe-area-inset-bottom))' : '12px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-end',
