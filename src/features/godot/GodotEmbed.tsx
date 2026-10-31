@@ -7,25 +7,30 @@ export type GodotEmbedMode = 'play' | 'ambient';
 interface GodotEmbedProps {
   mode: GodotEmbedMode;
   className?: string;
+  /** 'fill' bleeds to the parent box (landing backdrop); default keeps the card. */
+  layout?: 'card' | 'fill';
 }
 
 // PR1: postMessage-free iframe embed of the Godot web build served from
 // /godot/index.html. Shows a loading shimmer until the iframe fires onLoad.
 // No JS bridge yet — mode is passed as a query param only.
-export default function GodotEmbed({ mode, className }: GodotEmbedProps) {
+export default function GodotEmbed({ mode, className, layout = 'card' }: GodotEmbedProps) {
   const [loaded, setLoaded] = useState<boolean>(false);
   const src = `/godot/index.html?mode=${mode}`;
+  const fill = layout === 'fill';
 
   return (
     <div
       className={className}
       style={{
-        position: 'relative',
+        position: fill ? 'absolute' : 'relative',
+        inset: fill ? 0 : undefined,
         width: '100%',
-        height: 'clamp(340px, 62vh, 600px)',
-        borderRadius: '12px',
+        height: fill ? '100%' : 'clamp(340px, 62vh, 600px)',
+        borderRadius: fill ? 0 : '12px',
         overflow: 'hidden',
         backgroundColor: '#171d19',
+        pointerEvents: fill ? 'none' : undefined,
       }}
     >
       {!loaded && (
@@ -52,7 +57,7 @@ export default function GodotEmbed({ mode, className }: GodotEmbedProps) {
           width: '100%',
           height: '100%',
           border: 0,
-          borderRadius: '12px',
+          borderRadius: fill ? 0 : '12px',
           opacity: loaded ? 1 : 0,
           transition: 'opacity 300ms ease-in',
         }}

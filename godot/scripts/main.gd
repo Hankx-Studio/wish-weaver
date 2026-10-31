@@ -23,11 +23,24 @@ func _ready() -> void:
 	_park_hero_f()
 	_pin_player_refs()
 	_wire_npcs()
+	if _is_ambient():
+		return
 	var director := get_tree().get_first_node_in_group("story_director")
 	if director != null and (director as Object).has_method("start_story"):
 		(director as Object).call_deferred("start_story")
 	else:
 		push_warning("Main: no story_director found, story not started.")
+
+
+## Landing backdrop (?mode=ambient): living scene, no intro or dialogue.
+func _is_ambient() -> bool:
+	if not OS.has_feature("web"):
+		return false
+	var bridge: Object = Engine.get_singleton("JavaScriptBridge")
+	if bridge == null:
+		return false
+	var mode: String = str(bridge.call("eval", "new URLSearchParams(location.search).get('mode')"))
+	return mode == "ambient"
 
 
 func _unhandled_input(event: InputEvent) -> void:
