@@ -67,7 +67,7 @@ func _resolve_local(reason: String) -> void:
 	var out := {"effect": "sparkle", "color": [1.0, 1.0, 1.0]}
 	for k in LOCAL_KEYWORDS:
 		if k in t:
-			out = LOCAL_KEYWORDS[k]
+			out = (LOCAL_KEYWORDS[k] as Dictionary).duplicate()
 			break
 	out["source"] = "local_rule"
 	out["text"] = _pending_text

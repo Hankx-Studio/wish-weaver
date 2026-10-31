@@ -91,3 +91,5 @@ func _advance() -> void:
 func close() -> void:
 	active = false
 	panel.visible = false
+	if Main.I != null:
+		Main.ui().refresh()

@@ -32,13 +32,15 @@ func earn(id: String) -> void:
 		return
 	blessings[id] = true
 	blessing_earned.emit(id)
+	print("[QUEST] blessing earned: ", id)
 	save_progress()
 	if blessing_count() >= 3:
 		stage = "ending"
 		quest_stage_changed.emit(stage)
 
 func add_apple() -> void:
-	apples += 1
+	apples = min(apples + 1, 3)
+	print("[QUEST] apple ", apples, "/3")
 	if apples >= 3:
 		earn("harvest")
 	else:

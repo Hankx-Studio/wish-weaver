@@ -41,16 +41,26 @@ static func make() -> Player:
 				dup.albedo_texture = alb
 				mi.set_surface_override_material(si, dup)
 	p.anim = p.model.find_child("AnimationPlayer", true, false) as AnimationPlayer
-	# Camera rig.
+	# Camera rig: spring arm keeps the boom out of walls and roofs.
 	var pivot := Node3D.new()
 	pivot.name = "CamPivot"
 	pivot.position = Vector3(0, 1.6, 0)
 	p.add_child(pivot)
+	var arm := SpringArm3D.new()
+	arm.name = "Boom"
+	arm.position = Vector3(0, 0.6, 0)
+	arm.rotation_degrees = Vector3(-20, 0, 0)
+	arm.spring_length = 4.8
+	arm.margin = 0.3
+	var ashape := SphereShape3D.new()
+	ashape.radius = 0.35
+	arm.shape = ashape
+	pivot.add_child(arm)
+	arm.add_excluded_object(p.get_rid())
 	p.cam = Camera3D.new()
 	p.cam.name = "Cam"
-	p.cam.position = Vector3(0, 2.2, 4.6)
-	p.cam.rotation_degrees = Vector3(-18, 0, 0)
-	pivot.add_child(p.cam)
+	p.cam.position = Vector3(0, 0, arm.spring_length)
+	arm.add_child(p.cam)
 	p.cam.current = true
 	return p
 
@@ -59,7 +69,10 @@ func _ready() -> void:
 		anim.play("Idle")
 
 func _physics_process(dt: float) -> void:
+	var frozen := Main.I != null and ((Main.I.spell != null and Main.I.spell.open) or (Main.I.dlg != null and Main.I.dlg.active))
 	var iv := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	if frozen:
+		iv = Vector2.ZERO
 	moving = iv.length() > 0.1
 	var dir := Vector3(iv.x, 0, iv.y)
 	# Camera-relative with fixed yaw (cam_yaw follows slowly behind movement).
@@ -74,13 +87,13 @@ func _physics_process(dt: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, SPEED * 4.0 * dt)
 	if not is_on_floor():
 		velocity.y -= GRAV * dt
-	elif Input.is_action_just_pressed("jump"):
+	elif Input.is_action_just_pressed("jump") and not frozen:
 		velocity.y = JUMP
 	move_and_slide()
 	# Gentle camera yaw drift toward movement heading.
 	var pivot := get_node("CamPivot") as Node3D
 	var want := atan2(-velocity.x, -velocity.z) if Vector2(velocity.x, velocity.z).length() > 1.0 else cam_yaw
-	cam_yaw = lerp_angle(cam_yaw, want, min(1.0, 1.2 * dt))
+	cam_yaw = lerp_angle(cam_yaw, want, min(1.0, 2.5 * dt))
 	pivot.rotation.y = cam_yaw - rotation.y + PI
 	_update_anim()
 

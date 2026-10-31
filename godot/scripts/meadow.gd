@@ -194,6 +194,16 @@ func _build_fountain(at: Vector3) -> void:
 	wm.metallic = 0.3
 	water.material_override = wm
 	root.add_child(water)
+	var fcol := StaticBody3D.new()
+	fcol.name = "FountainBody"
+	var fcs := CollisionShape3D.new()
+	var fcyl := CylinderShape3D.new()
+	fcyl.radius = 2.2
+	fcyl.height = 1.0
+	fcs.shape = fcyl
+	fcs.position.y = 0.5
+	fcol.add_child(fcs)
+	root.add_child(fcol)
 	var pillar := MeshInstance3D.new()
 	var pc := CylinderMesh.new()
 	pc.top_radius = 0.3
@@ -258,6 +268,15 @@ func _build_stall(at: Vector3) -> void:
 	roof.rotation.z = 0.06
 	roof.material_override = cloth
 	root.add_child(roof)
+	var scol := StaticBody3D.new()
+	scol.name = "StallBody"
+	var scs := CollisionShape3D.new()
+	var sbox := BoxShape3D.new()
+	sbox.size = Vector3(2.8, 2.6, 1.6)
+	scs.shape = sbox
+	scs.position = Vector3(0, 1.3, 0)
+	scol.add_child(scs)
+	root.add_child(scol)
 	# Goods: glowing jars.
 	for i in 3:
 		var jar := MeshInstance3D.new()
