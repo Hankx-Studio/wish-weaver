@@ -47,6 +47,14 @@ func _build_sky() -> void:
 	e.fog_light_color = Color(0.72, 0.82, 0.90)
 	e.fog_depth_begin = 35.0
 	e.fog_depth_end = 150.0
+	if not OS.has_feature("web"):
+		# Native (Forward+) only: bloom + gentle grade. Web stays lean.
+		e.glow_enabled = true
+		e.glow_intensity = 0.3
+		e.glow_strength = 0.85
+		e.adjustment_enabled = true
+		e.adjustment_contrast = 1.05
+		e.adjustment_saturation = 1.12
 	env.environment = e
 	add_child(env)
 
@@ -163,8 +171,10 @@ func _build_flora() -> void:
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = "Grass"
 	mmi.multimesh = mm
-	var gm := _mat(Color(0.36, 0.60, 0.28))
-	gm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var gsh := Shader.new()
+	gsh.code = "shader_type spatial;\nrender_mode cull_disabled;\nuniform vec4 tint : source_color = vec4(0.36, 0.60, 0.28, 1.0);\nvoid vertex() {\n\tvec3 wp = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;\n\tfloat bend = 1.0 - UV.y;\n\tVERTEX.x += sin(TIME * 2.2 + wp.x * 0.8 + wp.z * 0.6) * 0.09 * bend;\n\tVERTEX.z += cos(TIME * 1.7 + wp.x * 0.5) * 0.05 * bend;\n}\nvoid fragment() {\n\tALBEDO = tint.rgb;\n\tROUGHNESS = 0.9;\n}\n"
+	var gm := ShaderMaterial.new()
+	gm.shader = gsh
 	mmi.material_override = gm
 	add_child(mmi)
 	# Flowers: small emissive spheres scattered.

@@ -12,6 +12,11 @@ var anim: AnimationPlayer
 var cam: Camera3D
 var cam_yaw := 0.0
 var moving := false
+var coyote := 0.0
+var jbuf := 0.0
+var squash_t := 0.0
+var _was_air := false
+var _prev_vy := 0.0
 
 static func make() -> Player:
 	var p := Player.new()
@@ -85,11 +90,24 @@ func _physics_process(dt: float) -> void:
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, SPEED * 4.0 * dt)
 		velocity.z = move_toward(velocity.z, 0.0, SPEED * 4.0 * dt)
-	if not is_on_floor():
+	if is_on_floor():
+		coyote = 0.12
+	else:
+		coyote = maxf(0.0, coyote - dt)
 		velocity.y -= GRAV * dt
-	elif Input.is_action_just_pressed("jump") and not frozen:
+	if not frozen and Input.is_action_just_pressed("jump"):
+		jbuf = 0.12
+	else:
+		jbuf = maxf(0.0, jbuf - dt)
+	if jbuf > 0.0 and coyote > 0.0 and not frozen:
 		velocity.y = JUMP
+		jbuf = 0.0
+		coyote = 0.0
+	_prev_vy = velocity.y
 	move_and_slide()
+	if _was_air and is_on_floor() and _prev_vy < -4.0:
+		squash_t = 0.16
+	_was_air = not is_on_floor()
 	# Keep the traveler inside the playable meadow bowl (visual rim is backdrop).
 	var flat := Vector2(global_position.x, global_position.z)
 	var max_r := 38.5
@@ -101,6 +119,17 @@ func _physics_process(dt: float) -> void:
 	var want := atan2(-velocity.x, -velocity.z) if Vector2(velocity.x, velocity.z).length() > 1.0 else cam_yaw
 	cam_yaw = lerp_angle(cam_yaw, want, min(1.0, 2.5 * dt))
 	pivot.rotation.y = cam_yaw - rotation.y + PI
+	# Feel: landing squash + run lean (model-local, subtle).
+	if model != null:
+		if squash_t > 0.0:
+			squash_t = maxf(0.0, squash_t - dt)
+			var k := squash_t / 0.16
+			model.scale = Vector3(1.0 + 0.18 * k, 1.0 - 0.25 * k, 1.0 + 0.18 * k)
+		else:
+			model.scale = model.scale.lerp(Vector3.ONE, minf(1.0, 12.0 * dt))
+		var hspeed := Vector2(velocity.x, velocity.z).length()
+		var lean := clampf(hspeed / SPEED, 0.0, 1.0) * 0.09
+		model.rotation.x = lerpf(model.rotation.x, lean, minf(1.0, 8.0 * dt))
 	_update_anim()
 
 func _update_anim() -> void:
