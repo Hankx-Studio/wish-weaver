@@ -1,6 +1,6 @@
 # spirit-quest reference archive (read-only)
 
-Source: `../spirit-quest` (sibling folder, old Hono/Vite project, M0–M6 + V2 world).
+Source: tag `archive/wish-weaver-v1` (old Hono/Vite project, M0–M6; local folder deleted 2026-10-29, unpushed V2 work discarded).
 Copied 2026-10-29 during repo consolidation. New development happens in
 `src/`, `supabase/`, `docs/PRD.md`, `docs/TECH_STACK.md` — NOT here.
 
