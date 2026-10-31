@@ -1,42 +1,157 @@
-# Visual PRD — Gray Meadow 3D restyle (route A: visuals first)
+# 月葉草原（A00–A15）視覺 PRD：Godot 美術重建到 Sky 光遇等級
 
-Refs: `refs/meadow.jpg` (world vista), `refs/characters.jpg` (traveler + wisp).
-Target feel: golden-hour meadow, soft clouds, glowing flowers, light particles;
-small cloaked traveler + white-gold wisp. Original assets only.
+## 1. Goal and visual pillars
 
-## Light rig (numbers)
-- Sky: gradient dome (top #6EA8DD → horizon #F3CD94), sun halo sprite at sun dir.
-- Fog: color #E8D3AE, near 80, far 300.
-- Hemisphere: sky #BFD9FF / ground #8A9A7B, intensity 1.05.
-- Sun: DirectionalLight #FFE3B3 intensity 2.6, pos (40, 60, 20), shadows 2048,
-  ortho box ±70, bias -0.0004.
-- Fill: DirectionalLight #BCD0FF intensity 0.55 from (-35, 24, -45), no shadow.
-- Renderer: ACESFilmic, exposure 1.0, shadows PCFSoft.
+重建 Godot 4.7（GL Compatibility，1280×720）月葉草原 A00–A15 的視覺層到 Sky《光遇》等級：消除一切方塊感，所有形體改為柔和雕塑感曲面，疊加水彩材質與大氣透視。任務系統與玩法邏輯完全不動，只改視覺層（材質、網格、燈光、天空、粒子），不改節點名、碰撞、腳本 API。
+Pillars:
+- 柔和雕塑感曲面：零硬邊方塊，所有岩石、拱門、樹幹、角色皆為圓潤高細分曲面，邊緣倒角半徑 ≥ 形體最小尺寸的 8%
+- 水彩材質：低飽和紙紋暈染，albedo 疊加 6–10% 強度噪聲水彩紋理，無純色塑膠面，無高光硬斑（roughness ≥ 0.55，除金屬飾件外 metallic = 0）
+- 大氣透視：三層以上遠近色階，遠山偏藍霧化，對比度隨距離遞減約 60%，地平線處加一層薄霧帶
+- 月葉草原之光：正午偏暖的柔和高 key 光，奶油雲 + 冰藍遠山 + 粉綠草甸，乾淨治癒，零暗黑零霓虹
 
-## Material recipe
-- Characters/props/trees: MeshToonMaterial, 4-step gradient ramp, warm shadow
-  fill via hemisphere ground color.
-- Ground: MeshStandardMaterial roughness 1.0, vertex-color patches
-  (#7FA35A base → #A9C46B sunlit).
-- Glow (wisp core, flowers, particles): emissive + additive sprites.
-- Palette anchors: cloak #2E3A44, scarf #D9B36a, skin #F2C9A0,
-  wisp #FFF3CF, flower accents pink #FFB3D9 / blue #9AD9FF / gold #FFD97A.
+## 2. Reference index
 
-## Parts (9)
-1. Meadow disc r=55 + color patches 2. Sky dome + sun halo + 8 cloud billboards
-3. Far mountain ring (cones, fog-faded) 4. Stone arch landmark
-5. 5 low-poly trees (trunk + icosphere canopy) 6. 900 grass tufts (instanced)
-7. 150 glowing flowers (instanced) 8. Traveler (cloak/head/scarf/eyes) + wisp
-9. Fireflies (120 ambient points) + ritual burst points
+| File | Shows | Authoritative for | Source |
+|---|---|---|---|
+| refs/target.png | 16:9 全景：旅人背影 + 花精靈 + 石拱門 + 草原小徑 + 層疊藍山 | 整體構圖、氛圍、色彩關係、渲染終檢；與 master 衝突時以 target 為準 | user |
+| refs/master.png | 同構圖全景，精靈較小較遠 | 景深層次、路徑走向（S 形由近景中央彎向拱門）、角色與拱門距離感 | user |
+| refs/traveler.png | 少年旅人三視圖級正面立繪（灰底） | 旅人剪影、五官比例、服裝分件與配色；旅人一切以此為準 | user |
+| refs/fairy.png | 花精靈正面立繪（灰底） | 精靈剪影、四翼形狀、花瓣裙層數、蓮冠、金色胸墜；精靈一切以此為準 | user |
+Assumptions for parts no reference shows:
+- 旅人背面（遊戲內主要視角）：頭髮為及頸金色短髮、葉斗篷由頸部向腰部放射 7–9 片葉，顏色沿用正面斗篷（葉綠 #7A9A6D，葉尖粉 #DCA0B0）
+- 石拱門背面與側面為同材質無雕花素面；拱門後方無額外建築，只有遠山與霧
+- 精靈背部：蓮冠後方為同色白色碎髮，無背包飾件；翅膀背面紋理與正面一致
 
-## Camera & motion
-- Third-person follow: dist 14, height 8, lookAt player+2y, FOV 55.
-- Drag orbits yaw (±pitch clamp 0.1–1.1 rad); smoothing k=6/s.
-- Move 8 m/s camera-relative, jump 8 m/s, gravity 22.
+## 3. Global look
 
-## Acceptance (preview screenshot vs refs)
-- [ ] Golden-hour warmth readable in one glance (no flat gray noon look)
-- [ ] Traveler + wisp silhouette clear at spawn framing
-- [ ] Flowers/particles visible without noise; clouds soft, not blocky
-- [ ] 30+ FPS on a mid laptop (no per-frame allocations in tick)
-- [ ] Reduced-motion: bursts become a static halo ring
+- Style: 3D 卡通水彩風（Sky 光遇式柔光 + 吉卜力水彩暈染），Godot StandardMaterial3D 手繪風 albedo + 頂點色 AO 感；禁止硬邊描線、禁止寫實 PBR 金屬反射
+- Palette: 天空 zenith #7FA8D0 → 地平線 #DCE8F2；雲奶油白 #F5EFDD（受光）/ #C9D4E4（背光）；遠山 #A9BFD4 → 中山 #7E96B8 → 近山 #5A6B8A；草甸亮部 #B9C98F → 暗部 #6E8B74；小徑 #EFE6D0；石拱門 #E8E0CE（受光）/ #B9B2A0（背光）；旅人髮 #E8C88A、斗篷葉 #7A9A6D 葉尖粉 #DCA0B0、上衣 #EFE8D8、長褲 #7E96AC、靴 #7E96AC 配 #C9A86A 鞋帶；精靈翅 #C9DCF0（翅脈 #8B9BD0）、花瓣裙 #E8A0B0（陰影 #C97E92）、蓮冠 #F5F0E6、胸前金墜 #D9A83C（唯一 metallic 0.8、roughness 0.3）
+- Lighting: DirectionalLight3D 正午暖 key（色溫約 #FFF2DC，能量 1.1），方位：人物前方偏左 ~35°、仰角 ~50°（對應 target 立繪面部柔和頂光）；Sky 為 ProceduralSkyMaterial 漸層 + 大面積柔光 AmbientLight（能量 0.7，顏色 #DCE8F2）；SSAO 僅做接觸暗角，禁止深黑 AO；全域 glow（bloom）只給精靈金墜與翅膀邊緣，閾值 1.0 以上
+- Camera: 第三人稱跟隨，FOV 55，位於旅人身後上方約 20° 俯角，距離 4.5 m；構圖沿用 master：旅人佔畫面高 ~35% 置於底部中央（x 0.42–0.55），拱門位於右三分割點（x ~0.70），地平線在畫面高 55% 處，天空佔上半 55%、草甸佔下半 45%
+- Background / ground: 無純色底；地面為起伏草甸網格（非平面），遠方三層剪影山脈 mesh + 天空盒；地平線霧帶一條（半透明白藍 #DCE8F2，alpha 0.35）
+- Render: Godot 4.7 GL Compatibility（Forward+ 不可用），viewport 1280×720，MSAA 3D = 2x，SDFGI 關閉（GL 兼容），以烘焙式頂點色 + 霧（fog）表現大氣透視；水彩紙紋為全螢幕極淡 overlay 或 albedo 噪聲貼圖（強度 ≤ 10%）
+
+## 4. Objects
+
+### 4.1 草甸地形 terrain（refs: target.png, master.png）
+
+Base unit: 視野內草甸寬度 W = 1.0（約 60 m）。
+Shape: 連續丘陵曲面，禁用平面與階梯；近景中央微凹形成小徑河床，左右兩側隆起 0.02–0.04 W；最細網格段 ≥ 每 2 m 一個起伏。
+Parts:
+| Part | Count | Size（in W） | Position | Material | Notes |
+|---|---|---|---|---|---|
+| 草甸本體 | 1 | 1.0 × 0.6（深） | 畫面下半 45%，地平線在 55% 高處 | 亮 #B9C98F → 暗 #6E8B74 頂點色漸層 + 水彩噪聲 | Subdiv ≥ 128×64，或等效雕塑曲面 |
+| 小徑 | 1 | 寬 0.03–0.05，由近寬漸遠窄 | S 形：近景中央 x 0.45 → 中景 x 0.55 → 拱門下 x 0.70 | #EFE6D0，roughness 0.9 | 邊緣羽化 0.01 W，與草地混合無硬邊 |
+| 花叢 | ≥ 40 叢 | 每叢 0.01–0.02 | 近景左右前景密、中景疏，粉白小花 | 花 #E8A0B0 / #F5F0E6，葉 #6E8B74 | 每叢 5–9 朵，禁整齊陣列 |
+| 草葉 | ≥ 300 片（或草粒子） | 高 0.005–0.012 | 全草甸，近景密 | #7A9A6D → #B9C98F | 隨風擺動 shader，幅度 ≤ 葉高 15% |
+Details: 近景草用深綠 #5E7B66 加深對比，花只用粉白兩色；小徑上無石塊，只留水彩暈染車轍。
+
+### 4.2 石拱門 stone arch（refs: target.png, master.png）
+
+Base unit: 拱門總高 H = 1.0（約 9 m）。
+Shape: 哥德尖拱，雙柱 + 尖頂，柱為圓柱（禁方柱），拱頂三葉草雕花 1 枚；整體寬 0.55 H，高 1.0 H；柱直徑 0.07 H；拱門洞寬 0.30 H、洞高 0.62 H。
+Parts:
+| Part | Count | Size（in H） | Position | Material | Notes |
+|---|---|---|---|---|---|
+| 柱 | 2 | Ø0.07 × 高 0.72 | 間距 0.41（中心距），立於 x ~0.70 畫面處 | #E8E0CE，roughness 0.8 | 柱頭柱礎各一圈淺浮雕線，無尖銳直角 |
+| 尖拱頂 | 1 | 寬 0.55 × 高 0.28 | 柱頂之上，矢高 0.15 H 的尖拱 | 同柱材質 | 左右對稱，拱尖居中 |
+| 三葉草雕花 | 1 | Ø0.16 | 拱頂正中 | 同材質，凹雕深 0.01 H | 三瓣均等 120°，禁不對稱變形 |
+Details: 石面疊加水彩斑駁（#B9B2A0 暗斑 ≤ 15% 面積）；底座各一塊方形矮基座（唯一允許的方體，高 0.04 H，倒角 0.01 H）；右柱後方緊鄰生命之樹（見 4.3）。
+
+### 4.3 生命之樹 tree of life（refs: target.png, master.png）
+
+Base unit: 樹高 T = 1.0（約拱門高的 0.55，~5 m）。
+Shape: 圓潤傘形樹冠（橢球 1.2 T 寬 × 0.8 T 高），樹幹微彎圓柱無稜角；樹冠由 5–7 團球狀葉簇拼成，禁立方體枝葉。
+Parts:
+| Part | Count | Size（in T） | Position | Material | Notes |
+|---|---|---|---|---|---|
+| 樹幹 | 1 | Ø0.10–0.14 × 高 0.45 | 拱門左柱左側 0.15 T | #8A7A68，roughness 0.9 | 向右微傾 ~8°，表面水彩豎紋 |
+| 葉簇 | 5–7 | 每團 Ø0.30–0.45 | 樹頂傘形分佈 | 葉綠 #7A9A6D 基底 + 粉 #E8A0B0 / 黃 #E8C88A 點綴（粉黃合計 ≤ 25%） | 每團為圓潤球體疊加，交界羽化 |
+Details: 葉簇點綴色集中在受光上緣；樹下草色加深一圈（#6E8B74 接觸陰影）。
+
+### 4.4 遠山與天空 mountains & sky（refs: target.png, master.png）
+
+Base unit: 畫面寬度 W = 1.0。
+Shape: 三層剪影山脈 mesh（非 skybox 貼圖），每層為平滑稜線，禁鋸齒三角面；雲為 6–10 朵蓬鬆體積感雲（billboard 或低模橢球群）。
+Parts:
+| Part | Count | Size | Position | Material | Notes |
+|---|---|---|---|---|---|
+| 近山 | 左右各 1 列 | 高佔畫面 0.30–0.38 | 左右前景兩側 | #5A6B8A，霧化 20% | 稜線圓潤，禁刀劈斧削 |
+| 中山 | 1 整排 | 高 0.18–0.25 | 地平線之上 | #7E96B8，霧化 45% | 主峰居中偏左 x ~0.28 |
+| 遠山 | 1 整排 | 高 0.10–0.15 | 緊貼地平線 | #A9BFD4，霧化 70% | 幾乎融於霧帶 |
+| 雲 | 6–10 | 每朵寬 0.10–0.30 W | 天空上半部 | 受光 #F5EFDD / 背光 #C9D4E4 | 蓬鬆水彩邊，禁硬塊狀 |
+| 霧帶 | 1 | 高 0.06 畫面高 | 地平線 55% 高處 | #DCE8F2 alpha 0.35 | 橫貫全寬 |
+Details: 霧用 Godot fog（顏色 #DCE8F2，密度使遠山對比下降 ~60%）；雲不投陰影。
+
+### 4.5 旅人 traveler / player（refs: traveler.png, target.png, master.png）
+
+Base unit: 身高 B = 1.0（約 1.4 m，少年體型，頭身比 1:5.5）。
+Shape: 圓潤少年體型，禁方塊四肢；短金髮及頸包覆後腦；尖耳由頭側水平伸出，長 0.06 B。
+Parts:
+| Part | Count | Size（in B） | Position | Material | Notes |
+|---|---|---|---|---|---|
+| 頭 + 髮 | 1 | 頭 Ø0.18，髮蓋至頸 | 頂部 | 髮 #E8C88A，膚 #F5E0D0，腮紅 #E8A0A0（淡） | 眼灰綠 #7A9A8D（traveler 立繪）；主要視角為背面，髮尾要有髮束層次 |
+| 葉斗篷 | 1（7–9 葉） | 每葉長 0.28–0.35 | 頸部放射至腰腿 | 葉面 #7A9A6D、葉尖粉 #DCA0B0（粉佔葉長後 1/3 漸變） | 葉片為彎曲瓣片，禁平面三角；金扣 1 枚 #D9A83C |
+| 上衣 | 1 | 長 0.42 | 軀幹 | #EFE8D8，roughness 0.9 | 袖口束起，衣擺過臀，有布紋噪聲 |
+| 長褲 | 1 | 長 0.45 | 腰至踝 | #7E96AC | 膝蓋處輕微皺褶（法線或貼圖） |
+| 靴 | 2 | 高 0.12 | 足部 | #7E96AC + #C9A86A 鞋帶 | 圓頭，禁方頭鞋 |
+| 斜挎包 | 1 | 0.10 × 0.12 | 右腰（traveler 立繪左側），背帶斜跨 | 包 #E8E0CE，帶 #7E96AC | 背面視角時包在右後腰可見 |
+Details: 背面葉斗篷為視覺重點，葉片 7–9 片放射、葉尖粉漸變必須還原（target 背影）；面部只在過場出現，保持 traveler 立繪灰綠眼 + 淡腮紅。
+
+### 4.6 花精靈 fairy / spirit（refs: fairy.png, target.png）
+
+Base unit: 精靈身高 F = 1.0（約旅人的 0.45，即 ~0.6 m；master 遠景中更小是透視所致）。
+Shape: Q 版小精靈，頭大（頭佔全身 1/3），禁細長四肢；四翼：上大下小共 4 片。
+Parts:
+| Part | Count | Size（in F） | Position | Material | Notes |
+|---|---|---|---|---|---|
+| 蓮冠 + 髮 | 1 | 冠 Ø0.34 | 頭頂 | 白 #F5F0E6，3 層蓮瓣（外中內各 8–10 瓣） | 層層向內收，禁整塊頭盔 |
+| 臉 | 1 | Ø0.22 | 冠下 | 膚 #FFF0E4，深藍眼 #4A5A7A，腮紅淡粉 | 笑臉，禁無表情白板 |
+| 翅（上） | 2 | 長 0.55 × 寬 0.25 | 背上左右展開，上揚 ~25° | #C9DCF0 半透（alpha 0.75），翅脈 #8B9BD0 | 葉形尖端，脈由基部放射 5–6 條 |
+| 翅（下） | 2 | 長 0.35 × 寬 0.16 | 背下左右展開 | 同上翅 | 較上翅窄，後掠 |
+| 花瓣裙 | 1（3 層 × 8–10 瓣） | 裙長 0.45 | 胸至膝 | 粉 #E8A0B0、陰影瓣 #C97E92（下層） | 上小下大三層疊，瓣尖朝下 |
+| 葉領 + 腿葉 | 領 2 片 + 腿 2 片 | 各 0.12–0.18 | 肩與小腿 | #9AA87E | 小腿葉片包覆如褲腳 |
+| 金墜 | 1 | Ø0.05 | 胸前 | #D9A83C metallic 0.8 + emissive 1.2（唯一發光） | 附小光暈 sprite |
+Details: 翅膀為全精靈辨識核心：半透明冰藍 + 紫藍翅脈缺一不可（fairy 立繪）；飛行時翅膀高頻扇動（殘影可接受），懸停高度約旅人肩高。
+
+## 5. Games only
+
+- Core loop: 不動（沿用現有任務 / 玩法腳本）。
+- Controls: 不動，不新增按鍵、UI 或操作。
+- Camera: 僅調參數：FOV 55、跟隨距離 4.5 m、俯角 ~20°、取景構圖對齊 master（§3 Camera）；不改 follow_camera.gd 接口。
+- States: 不動。
+- HUD: 不動，本 PRD 不含任何 HUD 改動。
+- Feedback and juice: 僅環境與角色層：草擺動（≤ 葉高 15%）、精靈翅膀扇動、精靈金墜微光脈動（emissive 1.0–1.4 正弦）、雲極慢漂移；禁螢幕震動、禁命中閃光（玩法層不動）。
+- Animation: 旅人待機呼吸（斗篷葉尖擺動 ±3°）、行走沿用現有動畫只換蒙皮權重；精靈懸停 bob（幅度 0.05 F，1.2 Hz）。
+- Audio: 本 PRD 無音訊改動。
+
+## 6. Technical constraints
+
+- Tool/engine: Godot 4.7，GL Compatibility 渲染器；場景沿用 godot/scenes（terrain.tscn、torii_gate.tscn→ 換皮為石拱門、tree_of_life.tscn、player、spirit.tscn、plaza.tscn），不增刪節點名與碰撞
+- Required outputs: 更新後的上述 .tscn + 新增水彩貼圖（assets/ 下，PNG，≤ 1024px）+ 天空 / 霧 / 燈光參數（寫入 main.tscn 或對應場景）；只改視覺層資源與材質參數
+- Resolution: 視口 1280×720（project.godot），PRD 構圖比例以 refs 的 16:9 全景為準
+- Performance: 60 fps（M1 Air 等級獨顯/集顯筆電，720p）；草葉用 MultiMesh，山脈低模，半透明只給翅膀與霧帶，全景 DrawCall ≤ 120
+
+## 7. Work breakdown
+
+1. 天空、霧、三層遠山、燈光 rig（灰盒拱門 + 膠囊人先對齊 master 構圖）
+2. 草甸曲面 + S 形小徑 + 霧帶（大氣透視先行）
+3. 石拱門雕塑曲面 + 三葉草雕花 + 樹（拱門 - 樹相對位置鎖定）
+4. 旅人：體型圓潤化 + 葉斗篷 7–9 瓣 + 背面包可見性
+5. 精靈：四翼半透明 + 三層花瓣裙 + 蓮冠 + 金墜發光
+6. 水彩材質 pass（紙紋噪聲、斑駁、布紋、翅脈貼圖）
+7. 花叢 + 草粒子 + 雲 + 接觸陰影，最終 1280×720 出圖對照 target 終檢
+
+## 8. Acceptance criteria
+
+- AC-01（target.png）：並排對照，畫面第一印象為同一場景：奶油雲 + 冰藍遠山 + 粉綠草甸 + 右側石拱門，天空佔上 55%、草甸佔下 45%，地平線在 55% 高處 ±3%
+- AC-02（master.png）：S 形小徑由近景中央彎向拱門下方，近寬遠窄（近端寬為遠端 ≥ 2 倍），邊緣無硬線
+- AC-03（target.png）：遠/中/近三層山 + 霧帶齊全，遠山對比度比近山低 ≥ 50%，左右近山包夾、中山主峰居中偏左
+- AC-04（target.png）：拱門立於右三分割點（中心 x 在 0.65–0.75 畫面寬內），總高寬比約 1:0.55 ±10%，哥德尖拱 + 中央三葉草雕花可辨認
+- AC-05（target.png）：樹緊鄰拱門左柱，樹高為拱門高 0.5–0.6 倍，傘形圓潤樹冠帶粉黃點綴（點綴 ≤ 30% 冠面）
+- AC-06（traveler.png）：旅人服裝四色齊全可辨：金髮、綠粉葉斗篷、米白上衣、灰藍褲靴，尖耳可見；背面葉片 7–9 片、葉尖粉漸變
+- AC-07（fairy.png）：精靈四翼（上大下小）半透明冰藍 #C9DCF0 系 + 放射狀紫藍翅脈；白色三層蓮冠；粉色三層花瓣裙；胸前金墜為全場唯一強發光點
+- AC-08（target.png）：旅人佔畫面高 0.30–0.40，位於底部中央；精靈懸停於旅人右前方肩高處，尺寸為旅人 0.35–0.50 倍
+- AC-09（全部 refs）：零方塊感：拱門柱、樹幹、四肢、岩石稜線在 720p 渲染中無可見硬稜角或平面切割面（基座除外）
+- AC-10（全部 refs）：水彩感：大面積色塊有暈染/噪聲變化（取 64×64 區塊標準差 > 4），無純色塑膠面；roughness 除金墜外 ≥ 0.55
+- AC-final（target.png）：與 target 並排，觀者稱為同一場景、同一旅人、同一精靈，無主要可見差異；玩法節點名、碰撞、腳本 API 與改動前一致

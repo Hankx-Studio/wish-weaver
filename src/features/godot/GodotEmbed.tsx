@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type GodotEmbedMode = 'play' | 'ambient';
 
@@ -18,6 +18,26 @@ export default function GodotEmbed({ mode, className, layout = 'card' }: GodotEm
   const [loaded, setLoaded] = useState<boolean>(false);
   const src = `/godot/index.html?mode=${mode}`;
   const fill = layout === 'fill';
+  const frameRef = useRef<HTMLIFrameElement>(null);
+
+  // The SSR iframe can finish loading before hydration attaches onLoad,
+  // leaving opacity stuck at 0 (black screen). Catch up on mount.
+  useEffect(() => {
+    const f = frameRef.current;
+    if (f == null) return;
+    try {
+      if (f.contentDocument?.readyState === 'complete') {
+        setLoaded(true);
+        return;
+      }
+    } catch {
+      setLoaded(true);
+      return;
+    }
+    const on = () => setLoaded(true);
+    f.addEventListener('load', on);
+    return () => f.removeEventListener('load', on);
+  }, [src]);
 
   return (
     <div
@@ -48,6 +68,7 @@ export default function GodotEmbed({ mode, className, layout = 'card' }: GodotEm
         />
       )}
       <iframe
+        ref={frameRef}
         src={src}
         title={mode === 'play' ? 'Spirit Companion — Godot build' : 'Spirit Companion — ambient scene'}
         onLoad={() => setLoaded(true)}

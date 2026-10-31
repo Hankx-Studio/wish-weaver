@@ -1,7 +1,8 @@
 extends CharacterBody3D
 ## Moonleaf traveler: single androgynous elf hero (A01-A03).
+## Rigged GLB (Hunyuan shape + projected vertex colors + Idle/Walk).
 ## Same movement contract as the old hero.gd (WASD + jump, speed 6, jump 7,
-## gravity 22) with a procedural walk cycle (limb swing, bob, lean, breathing).
+## gravity 22); animation crossfades on velocity, procedural bob/lean on Model.
 
 @export var speed := 6.0
 @export var jump_velocity := 7.0
@@ -11,11 +12,7 @@ extends CharacterBody3D
 var velocity_param := 0.0
 
 var _model: Node3D = null
-var _arm_l: Node3D = null
-var _arm_r: Node3D = null
-var _leg_l: Node3D = null
-var _leg_r: Node3D = null
-var _mantle: MeshInstance3D = null
+var _player: AnimationPlayer = null
 var _phase := 0.0
 var _time := 0.0
 
@@ -24,12 +21,33 @@ func _ready() -> void:
 	add_to_group("player")
 	add_to_group("current-player")
 	_model = get_node_or_null("Model") as Node3D
-	if _model != null:
-		_arm_l = _model.get_node_or_null("Hips/ArmLPivot") as Node3D
-		_arm_r = _model.get_node_or_null("Hips/ArmRPivot") as Node3D
-		_leg_l = _model.get_node_or_null("Hips/LegLPivot") as Node3D
-		_leg_r = _model.get_node_or_null("Hips/LegRPivot") as Node3D
-		_mantle = _model.get_node_or_null("Hips/Mantle") as MeshInstance3D
+	if _model == null:
+		return
+	var rig := _model.get_node_or_null("Rig")
+	if rig != null:
+		_player = rig.get_node_or_null("AnimationPlayer") as AnimationPlayer
+		_enable_vertex_colors(rig)
+	if _player != null:
+		_player.play("Idle")
+
+
+## Imported GLB carries COLOR_0; enable it as albedo on every surface.
+func _enable_vertex_colors(root: Node) -> void:
+	var stack: Array[Node] = [root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.push_back(c)
+		var mi := n as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		for s in range(mi.mesh.get_surface_count()):
+			var src := mi.mesh.surface_get_material(s)
+			var mat := (src as StandardMaterial3D).duplicate() as StandardMaterial3D if src is StandardMaterial3D else StandardMaterial3D.new()
+			mat.vertex_color_use_as_albedo = true
+			mat.roughness = 0.9
+			mat.metallic = 0.0
+			mi.set_surface_override_material(s, mat)
 
 
 func _physics_process(delta: float) -> void:
@@ -64,17 +82,13 @@ func _animate(delta: float) -> void:
 	_time += delta
 	var energy := clampf(velocity_param / 6.0, 0.0, 1.0)
 	_phase += delta * (2.0 + velocity_param * 1.7)
-	var swing := 0.65 * energy
-	var s: float = sin(_phase)
-	if _leg_l != null:
-		_leg_l.rotation.x = s * swing
-	if _leg_r != null:
-		_leg_r.rotation.x = -s * swing
-	if _arm_l != null:
-		_arm_l.rotation.x = -s * swing * 0.8
-	if _arm_r != null:
-		_arm_r.rotation.x = s * swing * 0.8
-	# Walk bob + idle breathing, lean into motion, mantle sway.
+	# Rigged animation crossfade on velocity.
+	if _player != null:
+		var want := "Walk" if energy > 0.12 else "Idle"
+		if _player.current_animation != want:
+			_player.play(want, 0.25)
+		_player.speed_scale = 0.7 + energy * 0.7 if want == "Walk" else 1.0
+	# Walk bob + idle breathing, lean into motion.
 	var bob: float = abs(cos(_phase)) * 0.045 * energy
 	var breathe: float = sin(_time * 2.0) * 0.012
 	_model.position.y = bob + breathe
@@ -82,5 +96,3 @@ func _animate(delta: float) -> void:
 	if not is_on_floor():
 		lean = -0.12
 	_model.rotation.x = lerpf(_model.rotation.x, lean, minf(1.0, 8.0 * delta))
-	if _mantle != null:
-		_mantle.rotation.z = sin(_time * 1.7) * 0.04 + energy * 0.06 * sin(_phase * 0.5)
